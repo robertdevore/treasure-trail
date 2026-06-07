@@ -1,0 +1,53 @@
+{
+	"version": 1,
+	"id": "sample-adventure",
+	"title": "Sample Adventure Hunt ⚠️ FAKE COORDINATES",
+	"description": "This is a sample hunt with fake coordinates for demonstration. Use the Hunt Builder to create your own real treasure hunts with real locations. Do NOT commit real hunt files to a public repository.",
+	"mode": "anyOrder",
+	"showExactMarkers": true,
+	"defaultRadiusMeters": 25,
+	"finalReward": "🏆 You found all the sample treasures! Now go build your own real hunt with your own locations.",
+	"createdAt": "2026-06-01T00:00:00.000Z",
+	"updatedAt": "2026-06-01T00:00:00.000Z",
+	"treasures": [
+		{
+			"id": "sample-1",
+			"title": "Sample #1: The Starting Point ⚠️",
+			"icon": "⚠️",
+			"lat": 0,
+			"lng": 0,
+			"radiusMeters": 30,
+			"clue": "This fake treasure is at coordinates 0,0 — the middle of the Atlantic Ocean. Replace it with your own location in the Hunt Builder.",
+			"hint": "Hint: This is a SAMPLE — build your own hunt with real locations!",
+			"foundMessage": "You found the fake sample treasure! 🎉",
+			"rewardText": "Sample Achievement: Now create your own real hunt!",
+			"privateNotes": "FAKE SAMPLE — coordinates 0,0. This treasure exists only for demonstration. Delete it and create your own."
+		},
+		{
+			"id": "sample-2",
+			"title": "Sample #2: Null Island Explorer ⚠️",
+			"icon": "🗺️",
+			"lat": 0.001,
+			"lng": 0.001,
+			"radiusMeters": 25,
+			"clue": "Near the famous Null Island. Another fake location — build your own treasure with real GPS coordinates!",
+			"hint": "Sample hint: all treasures in this demo are fake.",
+			"foundMessage": "You discovered the second sample! 🎯",
+			"rewardText": "Demo Badge: Time to make your own adventure!",
+			"privateNotes": "FAKE SAMPLE — coordinates ~0,0. Replace with real locations."
+		},
+		{
+			"id": "sample-3",
+			"title": "Sample #3: The Final Sample ⚠️",
+			"icon": "🏁",
+			"lat": -0.001,
+			"lng": -0.001,
+			"radiusMeters": 20,
+			"clue": "The last fake treasure. All coordinates in this sample file are in the middle of the ocean. Go build your own adventure!",
+			"hint": "Final hint: Treasure Trail stores your real hunts locally on your device — never on the public web.",
+			"foundMessage": "All sample treasures found! 🏆",
+			"rewardText": "Sample Complete: Head to the Hunt Builder and create your own real treasure hunt!",
+			"privateNotes": "FAKE SAMPLE — coordinates ~0,0. Your real hunts will be stored only in your browser."
+		}
+	]
+}

@@ -1,0 +1,27 @@
+{
+	"name": "Treasure Trail",
+	"short_name": "Treasure Trail",
+	"description": "A personal GPS treasure hunt builder.",
+	"id": "treasure-trail",
+	"start_url": ".",
+	"scope": ".",
+	"display": "standalone",
+	"orientation": "portrait",
+	"background_color": "#071512",
+	"theme_color": "#f4c542",
+	"categories": ["entertainment", "games", "lifestyle"],
+	"icons": [
+		{
+			"src": "./icons/icon-192.svg",
+			"sizes": "192x192",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "./icons/icon-512.svg",
+			"sizes": "512x512",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		}
+	]
+}

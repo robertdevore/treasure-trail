@@ -1,0 +1,594 @@
+/* === Treasure Trail — Core Styles === */
+/* Theme Tokens */
+:root {
+	--bg: #071512;
+	--panel: #10231d;
+	--panel-2: #173529;
+	--text: #f7f1d2;
+	--muted: #cdbf91;
+	--gold: #f4c542;
+	--accent: #51e6a6;
+	--danger: #ff6b6b;
+	--radius: 18px;
+}
+
+/* Reset */
+*, *::before, *::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html {
+	font-size: 16px;
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+	background-color: var(--bg);
+	color: var(--text);
+	line-height: 1.5;
+	min-height: 100dvh;
+	overflow-x: hidden;
+	-webkit-tap-highlight-color: transparent;
+}
+
+#app {
+	max-width: 600px;
+	margin: 0 auto;
+	min-height: 100dvh;
+}
+
+/* === View System === */
+
+.view {
+	display: none;
+	flex-direction: column;
+	min-height: 100dvh;
+	padding: 1rem;
+}
+
+.view.active {
+	display: flex;
+}
+
+/* Fade transition */
+.view {
+	animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; transform: translateY(8px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+
+/* === App Header === */
+
+.app-header {
+	text-align: center;
+	padding: 3rem 1rem 2rem;
+}
+
+.app-header h1 {
+	font-size: 2.2rem;
+	color: var(--gold);
+	margin-bottom: 0.5rem;
+	letter-spacing: -0.02em;
+}
+
+.tagline {
+	color: var(--muted);
+	font-size: 1.05rem;
+}
+
+/* === View Header === */
+
+.view-header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.5rem 0;
+	margin-bottom: 1rem;
+	border-bottom: 1px solid var(--panel-2);
+}
+
+.view-header h2 {
+	font-size: 1.25rem;
+	color: var(--gold);
+	flex: 1;
+}
+
+.view-body {
+	flex: 1;
+	overflow-y: auto;
+}
+
+.placeholder-text {
+	text-align: center;
+	color: var(--muted);
+	padding: 3rem 1rem;
+	font-style: italic;
+}
+
+/* === Buttons === */
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	padding: 0.75rem 1.25rem;
+	border: none;
+	border-radius: var(--radius);
+	font-size: 1rem;
+	font-weight: 600;
+	font-family: inherit;
+	cursor: pointer;
+	transition: background-color 0.15s, transform 0.1s, opacity 0.15s;
+	-webkit-tap-highlight-color: transparent;
+	user-select: none;
+}
+
+.btn:active {
+	transform: scale(0.97);
+}
+
+.btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.btn-large {
+	padding: 1rem 1.5rem;
+	font-size: 1.15rem;
+	width: 100%;
+}
+
+.btn-primary {
+	background-color: var(--gold);
+	color: var(--bg);
+}
+
+.btn-primary:hover:not(:disabled) {
+	background-color: #e0b02e;
+}
+
+.btn-secondary {
+	background-color: var(--accent);
+	color: var(--bg);
+}
+
+.btn-secondary:hover:not(:disabled) {
+	background-color: #3cc488;
+}
+
+.btn-outline {
+	background-color: transparent;
+	color: var(--muted);
+	border: 2px solid var(--panel-2);
+}
+
+.btn-outline:hover:not(:disabled) {
+	border-color: var(--gold);
+	color: var(--gold);
+}
+
+.btn-link {
+	background: none;
+	color: var(--accent);
+	padding: 0.5rem;
+	font-size: 0.9rem;
+	text-decoration: underline;
+}
+
+.btn-back {
+	background: none;
+	color: var(--muted);
+	padding: 0.5rem 0.75rem;
+	font-size: 0.9rem;
+	border: 1px solid var(--panel-2);
+	border-radius: 12px;
+}
+
+.btn-back:hover {
+	border-color: var(--gold);
+	color: var(--gold);
+}
+
+.btn-danger {
+	background-color: var(--danger);
+	color: #fff;
+}
+
+.btn-danger:hover:not(:disabled) {
+	background-color: #e05555;
+}
+
+.btn-small {
+	padding: 0.4rem 0.75rem;
+	font-size: 0.85rem;
+	border-radius: 12px;
+}
+
+/* === Home Screen === */
+
+.home-content {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	padding: 0 0.5rem;
+}
+
+.status-bar {
+	background-color: var(--panel);
+	border-radius: var(--radius);
+	padding: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.status-item {
+	padding: 0.4rem 0;
+	font-size: 0.9rem;
+	color: var(--muted);
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.status-item:not(:last-child) {
+	border-bottom: 1px solid var(--panel-2);
+	padding-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
+}
+
+.home-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+/* === Modal Views === */
+
+.modal-view {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(7, 21, 18, 0.95);
+	z-index: 100;
+	display: none;
+	align-items: center;
+	justify-content: center;
+}
+
+.modal-view.active {
+	display: flex;
+}
+
+.modal-content {
+	text-align: center;
+	padding: 2rem;
+	max-width: 400px;
+}
+
+/* === Forms === */
+
+.form-group {
+	margin-bottom: 1rem;
+}
+
+.form-group label {
+	display: block;
+	font-size: 0.85rem;
+	color: var(--muted);
+	margin-bottom: 0.3rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+	width: 100%;
+	padding: 0.7rem 0.9rem;
+	border: 2px solid var(--panel-2);
+	border-radius: 12px;
+	background-color: var(--panel);
+	color: var(--text);
+	font-size: 1rem;
+	font-family: inherit;
+	transition: border-color 0.15s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+	outline: none;
+	border-color: var(--gold);
+}
+
+.form-group textarea {
+	resize: vertical;
+	min-height: 80px;
+}
+
+.form-group input[type="checkbox"],
+.form-group input[type="radio"] {
+	width: auto;
+	margin-right: 0.5rem;
+}
+
+.form-row {
+	display: flex;
+	gap: 0.75rem;
+}
+
+.form-row .form-group {
+	flex: 1;
+}
+
+.toggle-group {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+.toggle-group label {
+	font-size: 0.95rem;
+	color: var(--text);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.toggle-group input[type="checkbox"] {
+	width: 1.2rem;
+	height: 1.2rem;
+	accent-color: var(--gold);
+}
+
+/* === Map === */
+
+.map-container {
+	width: 100%;
+	height: 300px;
+	border-radius: var(--radius);
+	overflow: hidden;
+	background-color: var(--panel);
+	border: 2px solid var(--panel-2);
+	margin-bottom: 1rem;
+	z-index: 1;
+}
+
+.map-container .leaflet-container {
+	width: 100%;
+	height: 100%;
+}
+
+/* === Cards === */
+
+.card {
+	background-color: var(--panel);
+	border-radius: var(--radius);
+	padding: 1rem;
+	margin-bottom: 0.75rem;
+	border: 1px solid var(--panel-2);
+}
+
+.card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 0.5rem;
+}
+
+.card-title {
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--text);
+}
+
+.card-subtitle {
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+
+.card-actions {
+	display: flex;
+	gap: 0.4rem;
+}
+
+/* === Player View === */
+
+.player-stats {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.player-stat {
+	background-color: var(--panel);
+	border-radius: var(--radius);
+	padding: 0.75rem;
+	text-align: center;
+}
+
+.player-stat .stat-value {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: var(--gold);
+}
+
+.player-stat .stat-label {
+	font-size: 0.75rem;
+	color: var(--muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.clue-box {
+	background-color: var(--panel);
+	border-radius: var(--radius);
+	padding: 1rem;
+	margin-bottom: 0.75rem;
+	border-left: 4px solid var(--gold);
+}
+
+.clue-box .clue-label {
+	font-size: 0.75rem;
+	color: var(--muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-bottom: 0.25rem;
+}
+
+.clue-box .clue-text {
+	font-size: 1.1rem;
+	color: var(--text);
+	font-style: italic;
+}
+
+.warm-cold {
+	text-align: center;
+	padding: 0.75rem;
+	border-radius: var(--radius);
+	font-size: 1.2rem;
+	font-weight: 700;
+	margin-bottom: 0.75rem;
+}
+
+.warm-cold.very-close {
+	background-color: rgba(81, 230, 166, 0.15);
+	color: var(--accent);
+}
+
+.warm-cold.warm {
+	background-color: rgba(244, 197, 66, 0.15);
+	color: var(--gold);
+}
+
+.warm-cold.cold {
+	background-color: rgba(205, 191, 145, 0.1);
+	color: var(--muted);
+}
+
+/* === Treasure List (Builder) === */
+
+.treasure-list {
+	list-style: none;
+}
+
+.treasure-item {
+	background-color: var(--panel);
+	border-radius: var(--radius);
+	padding: 0.75rem 1rem;
+	margin-bottom: 0.5rem;
+	border: 1px solid var(--panel-2);
+}
+
+.treasure-item-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.treasure-item-title {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 600;
+}
+
+.treasure-icon {
+	font-size: 1.5rem;
+}
+
+.treasure-coords {
+	font-size: 0.75rem;
+	color: var(--muted);
+	margin-top: 0.25rem;
+}
+
+/* === Confetti === */
+
+.confetti-container {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 200;
+	overflow: hidden;
+}
+
+.confetti-piece {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	top: -20px;
+	animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+	0% {
+		transform: translateY(0) rotate(0deg);
+		opacity: 1;
+	}
+	100% {
+		transform: translateY(100vh) rotate(720deg);
+		opacity: 0;
+	}
+}
+
+/* === Messages / Alerts === */
+
+.alert {
+	padding: 0.75rem 1rem;
+	border-radius: 12px;
+	margin-bottom: 0.75rem;
+	font-size: 0.9rem;
+}
+
+.alert-error {
+	background-color: rgba(255, 107, 107, 0.15);
+	color: var(--danger);
+	border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.alert-success {
+	background-color: rgba(81, 230, 166, 0.15);
+	color: var(--accent);
+	border: 1px solid rgba(81, 230, 166, 0.3);
+}
+
+.alert-warning {
+	background-color: rgba(244, 197, 66, 0.15);
+	color: var(--gold);
+	border: 1px solid rgba(244, 197, 66, 0.3);
+}
+
+/* === Responsive === */
+
+@media (max-width: 400px) {
+	.app-header h1 {
+		font-size: 1.8rem;
+	}
+
+	.btn-large {
+		font-size: 1rem;
+		padding: 0.85rem 1.25rem;
+	}
+
+	.player-stats {
+		grid-template-columns: 1fr;
+	}
+}
