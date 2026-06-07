@@ -550,32 +550,55 @@
 		if (!navigator.geolocation) {
 			el.textContent = '🛰️ GPS: Not supported on this device.';
 			el.style.color = 'var(--danger)';
+			el.style.cursor = 'default';
 			return;
 		}
 
 		if (navigator.permissions && navigator.permissions.query) {
 			navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
 				if (result.state === 'granted') {
-					el.textContent = '🛰️ GPS: Ready ✓';
+					el.innerHTML = '🛰️ GPS: <strong>Ready ✓</strong>';
 					el.style.color = 'var(--accent)';
+					el.style.cursor = 'default';
 				} else if (result.state === 'denied') {
-					el.textContent = '🛰️ GPS: Permission denied ✗';
+					el.innerHTML = '🛰️ GPS: <strong>Blocked ✗</strong> — tap to learn how to enable';
 					el.style.color = 'var(--danger)';
+					el.style.cursor = 'pointer';
 				} else {
-					el.textContent = '🛰️ GPS: Permission needed';
+					el.innerHTML = '🛰️ GPS: <strong>Tap here to enable</strong> — or start a hunt';
 					el.style.color = 'var(--gold)';
+					el.style.cursor = 'pointer';
 				}
 				result.addEventListener('change', function () {
 					updateGPSIndicator();
 				});
 			}).catch(function () {
-				el.textContent = '🛰️ GPS: Status unknown (check browser settings)';
-				el.style.color = 'var(--muted)';
+				el.innerHTML = '🛰️ GPS: <strong>Tap here to request</strong>';
+				el.style.color = 'var(--gold)';
+				el.style.cursor = 'pointer';
 			});
 		} else {
-			el.textContent = '🛰️ GPS: Supported — will prompt when needed';
-			el.style.color = 'var(--accent)';
+			el.innerHTML = '🛰️ GPS: <strong>Tap here to enable</strong>';
+			el.style.color = 'var(--gold)';
+			el.style.cursor = 'pointer';
 		}
+
+		// Make GPS indicator clickable to request permission
+		el.onclick = function () {
+			if (!navigator.geolocation) return;
+			navigator.geolocation.getCurrentPosition(
+				function () {
+					updateGPSIndicator();
+				},
+				function (err) {
+					if (err.code === 1) {
+						alert('Location permission was denied. To enable it:\n\n• iOS: Settings → Safari → Location → Allow\n• Android: Site settings → Location → Allow');
+					}
+					updateGPSIndicator();
+				},
+				{ timeout: 10000 }
+			);
+		};
 	}
 
 	/**
