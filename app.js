@@ -1560,8 +1560,46 @@
 
 		window.TreasureApp.showView('player');
 		renderPlayerView();
-		startGPSWatch();
 		initPlayerMap();
+
+		// First, get an immediate position (this triggers the permission prompt)
+		// Then start continuous watching
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				function (pos) {
+					playerState.currentPosition = {
+						lat: pos.coords.latitude,
+						lng: pos.coords.longitude,
+						accuracy: pos.coords.accuracy,
+						timestamp: pos.timestamp
+					};
+					updatePlayerUI(playerState.currentPosition);
+					updatePlayerMap();
+					// Recenter map to user's location
+					if (playerState.playerMap) {
+						playerState.playerMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
+					}
+					checkUnlock();
+				},
+				function (err) {
+					var msg = '';
+					if (err.code === 1) msg = '⚠️ Location permission denied. Please enable in browser settings.';
+					else if (err.code === 2) msg = '⚠️ GPS unavailable. Check your signal and try again.';
+					else if (err.code === 3) msg = '⚠️ GPS request timed out. Try again.';
+					var wcEl = document.getElementById('warm-cold');
+					if (wcEl) {
+						wcEl.textContent = msg + ' Tap to retry.';
+						wcEl.className = 'warm-cold cold';
+						wcEl.style.cursor = 'pointer';
+						wcEl.onclick = function () { startPlayerHunt(); };
+					}
+				},
+				{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+			);
+		}
+
+		// Start continuous watching
+		startGPSWatch();
 	}
 
 	/**
@@ -1648,7 +1686,30 @@
 				updatePlayerUI(playerState.currentPosition);
 				alert('Current accuracy: ' + Math.round(playerState.currentPosition.accuracy) + 'm');
 			} else {
-				alert('No GPS position available yet.');
+				// Try to get a fresh position
+				if (navigator.geolocation) {
+					navigator.geolocation.getCurrentPosition(
+						function (pos) {
+							playerState.currentPosition = {
+								lat: pos.coords.latitude,
+								lng: pos.coords.longitude,
+								accuracy: pos.coords.accuracy,
+								timestamp: pos.timestamp
+							};
+							updatePlayerUI(playerState.currentPosition);
+							updatePlayerMap();
+							if (playerState.playerMap) {
+								playerState.playerMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
+							}
+							checkUnlock();
+							startGPSWatch(); // resume watching
+						},
+						function (err) {
+							alert('Could not get location: ' + (err.message || 'Unknown error'));
+						},
+						{ enableHighAccuracy: true, timeout: 15000 }
+					);
+				}
 			}
 		});
 
@@ -1672,9 +1733,41 @@
 		});
 
 		document.getElementById('btn-claim-reward').addEventListener('click', function () {
-			// Phase 08 will implement full reward screen
 			showFinalReward();
 		});
+
+		// Make warm-cold indicator clickable to retry GPS
+		var wcEl = document.getElementById('warm-cold');
+		if (wcEl && !playerState.currentPosition) {
+			wcEl.style.cursor = 'pointer';
+			wcEl.title = 'Tap to request GPS location';
+			wcEl.addEventListener('click', function () {
+				if (playerState.currentPosition) return;
+				if (!navigator.geolocation) return;
+				wcEl.textContent = '🛰️ Requesting GPS...';
+				navigator.geolocation.getCurrentPosition(
+					function (pos) {
+						playerState.currentPosition = {
+							lat: pos.coords.latitude,
+							lng: pos.coords.longitude,
+							accuracy: pos.coords.accuracy,
+							timestamp: pos.timestamp
+						};
+						updatePlayerUI(playerState.currentPosition);
+						updatePlayerMap();
+						if (playerState.playerMap) {
+							playerState.playerMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
+						}
+						checkUnlock();
+						startGPSWatch();
+					},
+					function () {
+						wcEl.textContent = '⚠️ GPS failed. Tap to retry.';
+					},
+					{ enableHighAccuracy: true, timeout: 15000 }
+				);
+			});
+		}
 	}
 
 	/**
@@ -1900,9 +1993,28 @@
 
 		destroyPlayerMap();
 
+		// Determine initial center: user's last position from progress, or treasure bounds
+		var hunt = window.TreasureApp.hunts.get(playerState.huntId);
+		var progress = window.TreasureApp.progress.load(playerState.huntId);
+		var centerLat = 0;
+		var centerLng = 0;
+		var centerZoom = 2;
+
+		// If we have a last known position, use it
+		if (progress && progress.lastKnownPosition && progress.lastKnownPosition.lat) {
+			centerLat = progress.lastKnownPosition.lat;
+			centerLng = progress.lastKnownPosition.lng;
+			centerZoom = 16;
+		} else if (hunt && hunt.treasures && hunt.treasures.length > 0) {
+			// Otherwise, center on the first treasure
+			centerLat = hunt.treasures[0].lat;
+			centerLng = hunt.treasures[0].lng;
+			centerZoom = 14;
+		}
+
 		playerState.playerMap = L.map('player-map', {
-			center: [0, 0],
-			zoom: 2,
+			center: [centerLat, centerLng],
+			zoom: centerZoom,
 			zoomControl: true
 		});
 
@@ -1913,7 +2025,7 @@
 
 		setTimeout(function () {
 			if (playerState.playerMap) playerState.playerMap.invalidateSize();
-		}, 300);
+		}, 400);
 
 		updatePlayerMap();
 	}
