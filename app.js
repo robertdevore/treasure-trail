@@ -617,8 +617,6 @@
 	});
 
 	document.getElementById('btn-load-sample').addEventListener('click', function () {
-
-	document.getElementById('btn-load-sample').addEventListener('click', function () {
 		loadSampleHunt();
 	});
 
