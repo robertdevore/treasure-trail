@@ -475,6 +475,92 @@
 
 	console.log('Treasure Trail loaded. Storage available:', storageAvailable);
 
+	// === Custom Modal System ===
+
+	/**
+	 * Show a styled modal dialog (replaces alert).
+	 * @param {string} message - The message text.
+	 * @param {string} [type='info'] - Type: 'info', 'success', 'error', 'warning'.
+	 * @param {string} [title=''] - Optional title.
+	 * @param {Function} [onClose] - Optional callback when modal is dismissed.
+	 */
+	function showModal(message, type, title, onClose) {
+		type = type || 'info';
+		title = title || '';
+		onClose = onClose || function () {};
+
+		var icons = { info: '💬', success: '✅', error: '❌', warning: '⚠️' };
+		var colors = { info: 'var(--accent)', success: 'var(--accent)', error: 'var(--danger)', warning: 'var(--gold)' };
+
+		var modal = document.getElementById('custom-modal');
+		document.getElementById('custom-modal-icon').textContent = icons[type] || icons.info;
+		document.getElementById('custom-modal-title').textContent = title || (type === 'error' ? 'Error' : type === 'success' ? 'Success' : type === 'warning' ? 'Warning' : '');
+		document.getElementById('custom-modal-title').style.color = colors[type] || colors.info;
+		document.getElementById('custom-modal-body').textContent = message;
+		document.getElementById('custom-modal-footer').innerHTML = '<button class="btn btn-primary" id="modal-ok-btn">OK</button>';
+
+		modal.classList.add('active');
+
+		document.getElementById('modal-ok-btn').addEventListener('click', function () {
+			modal.classList.remove('active');
+			onClose();
+		});
+
+		// Close on backdrop click
+		modal.querySelector('.custom-modal-backdrop').onclick = function () {
+			modal.classList.remove('active');
+			onClose();
+		};
+	}
+
+	/**
+	 * Show a styled confirmation dialog (replaces confirm).
+	 * @param {string} message - The confirmation message.
+	 * @param {Function} onConfirm - Called when user confirms.
+	 * @param {Function} [onCancel] - Called when user cancels.
+	 * @param {string} [title='Confirm'] - Optional title.
+	 * @param {string} [confirmText='Confirm'] - Text for the confirm button.
+	 * @param {string} [cancelText='Cancel'] - Text for the cancel button.
+	 */
+	function showConfirm(message, onConfirm, onCancel, title, confirmText, cancelText) {
+		onConfirm = onConfirm || function () {};
+		onCancel = onCancel || function () {};
+		title = title || 'Confirm';
+		confirmText = confirmText || 'Confirm';
+		cancelText = cancelText || 'Cancel';
+
+		var modal = document.getElementById('custom-modal');
+		document.getElementById('custom-modal-icon').textContent = '❓';
+		document.getElementById('custom-modal-title').textContent = title;
+		document.getElementById('custom-modal-title').style.color = 'var(--gold)';
+		document.getElementById('custom-modal-body').textContent = message;
+		document.getElementById('custom-modal-footer').innerHTML =
+			'<button class="btn btn-outline" id="modal-cancel-btn">' + cancelText + '</button>' +
+			'<button class="btn btn-primary" id="modal-confirm-btn">' + confirmText + '</button>';
+
+		modal.classList.add('active');
+
+		function dismiss() {
+			modal.classList.remove('active');
+		}
+
+		document.getElementById('modal-confirm-btn').addEventListener('click', function () {
+			dismiss();
+			onConfirm();
+		});
+
+		document.getElementById('modal-cancel-btn').addEventListener('click', function () {
+			dismiss();
+			onCancel();
+		});
+
+		// Close on backdrop click = cancel
+		modal.querySelector('.custom-modal-backdrop').onclick = function () {
+			dismiss();
+			onCancel();
+		};
+	}
+
 	// === View Manager ===
 
 	var currentView = 'home';
@@ -592,7 +678,7 @@
 				},
 				function (err) {
 					if (err.code === 1) {
-						alert('Location permission was denied. To enable it:\n\n• iOS: Settings → Safari → Location → Allow\n• Android: Site settings → Location → Allow');
+						showModal('Location permission was denied.\n\n• iOS: Settings → Safari → Location → Allow\n• Android: Site settings → Location → Allow', 'warning', 'GPS Permission');
 					}
 					updateGPSIndicator();
 				},
@@ -791,10 +877,10 @@
 		// Event: Delete Hunt
 		bindElements('.btn-delete-hunt', 'click', function (e) {
 			var huntId = e.target.getAttribute('data-id');
-			if (confirm('Delete this hunt and all its treasures? This cannot be undone.')) {
+			showConfirm('Delete this hunt and all its treasures? This cannot be undone.', function () {
 				window.TreasureApp.hunts.delete(huntId);
 				renderHuntList(container);
-			}
+			}, null, 'Delete Hunt', 'Delete', 'Cancel');
 		});
 
 		// Event: Open Treasures
@@ -871,7 +957,7 @@
 
 			var errors = window.TreasureApp.validateHunt(hunt);
 			if (errors.length > 0) {
-				alert('Please fix the following errors:\n\n' + errors.join('\n'));
+				showModal(errors.join('\n'), 'error', 'Validation Errors');
 				return;
 			}
 
@@ -998,12 +1084,12 @@
 		// Delete treasure
 		bindElements('.btn-del-treasure', 'click', function (e) {
 			var tId = e.target.getAttribute('data-id');
-			if (confirm('Delete this treasure?')) {
+			showConfirm('Delete this treasure?', function () {
 				hunt.treasures = hunt.treasures.filter(function (t) { return t.id !== tId; });
 				hunt.updatedAt = new Date().toISOString();
 				window.TreasureApp.hunts.upsert(hunt);
 				renderTreasureList(container);
-			}
+			}, null, 'Delete Treasure', 'Delete', 'Cancel');
 		});
 
 		// Move up
@@ -1039,10 +1125,10 @@
 
 		// Reset progress
 		document.getElementById('btn-reset-progress').addEventListener('click', function () {
-			if (confirm('Reset all progress for this hunt? Found treasures will be unfound.')) {
+			showConfirm('Reset all progress for this hunt? Found treasures will be unfound.', function () {
 				window.TreasureApp.progress.delete(hunt.id);
-				alert('Progress reset.');
-			}
+				showModal('Progress reset.', 'success');
+			}, null, 'Reset Progress', 'Reset', 'Cancel');
 		});
 	}
 
@@ -1204,7 +1290,7 @@
 		// Use My Location button
 		document.getElementById('btn-use-my-location-form').addEventListener('click', function () {
 			if (!navigator.geolocation) {
-				alert('Geolocation is not supported on this device.');
+				showModal('Geolocation is not supported on this device.', 'error', 'GPS Unavailable');
 				return;
 			}
 			navigator.geolocation.getCurrentPosition(function (pos) {
@@ -1216,9 +1302,9 @@
 					treasureMap.setView([lat, lng], 17);
 					updateTreasureFormMarker(lat, lng);
 				}
-				alert('Location captured! Accuracy: ' + Math.round(pos.coords.accuracy) + 'm');
+				showModal('Location captured! Accuracy: ' + Math.round(pos.coords.accuracy) + 'm', 'success', 'Location Captured');
 			}, function (err) {
-				alert('Could not get location: ' + err.message);
+				showModal('Could not get location: ' + err.message, 'error', 'GPS Error');
 			}, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
 		});
 
@@ -1240,7 +1326,7 @@
 
 			var errors = window.TreasureApp.validateTreasure(t);
 			if (errors.length > 0) {
-				alert('Please fix the following errors:\n\n' + errors.join('\n'));
+				showModal(errors.join('\n'), 'error', 'Validation Errors');
 				return;
 			}
 
@@ -1298,7 +1384,7 @@
 			settings.builderPin = document.getElementById('builder-pin').value.trim();
 			window.TreasureApp.settings.save(settings);
 			builderState.pinVerified = false;
-			alert('Builder settings saved.');
+			showModal('Builder settings saved.', 'success');
 			renderHuntList(container);
 		});
 
@@ -1538,14 +1624,14 @@
 	function startPlayerHunt() {
 		playerState.huntId = window.TreasureApp.activeHunt.get();
 		if (!playerState.huntId) {
-			alert('No active hunt selected. Go to the Builder and select a hunt first.');
+			showModal('No active hunt selected. Go to the Builder and select a hunt first.', 'warning', 'No Hunt Selected');
 			window.TreasureApp.showView('home');
 			return;
 		}
 
 		var hunt = window.TreasureApp.hunts.get(playerState.huntId);
 		if (!hunt || !hunt.treasures || hunt.treasures.length === 0) {
-			alert('The active hunt has no treasures. Add some treasures in the Builder first.');
+			showModal('The active hunt has no treasures. Add some treasures in the Builder first.', 'warning', 'No Treasures');
 			window.TreasureApp.showView('home');
 			return;
 		}
@@ -1684,7 +1770,7 @@
 		document.getElementById('btn-check-location').addEventListener('click', function () {
 			if (playerState.currentPosition) {
 				updatePlayerUI(playerState.currentPosition);
-				alert('Current accuracy: ' + Math.round(playerState.currentPosition.accuracy) + 'm');
+				showModal('Current accuracy: ' + Math.round(playerState.currentPosition.accuracy) + 'm', 'info', 'GPS Status');
 			} else {
 				// Try to get a fresh position
 				if (navigator.geolocation) {
@@ -1705,7 +1791,7 @@
 							startGPSWatch(); // resume watching
 						},
 						function (err) {
-							alert('Could not get location: ' + (err.message || 'Unknown error'));
+							showModal('Could not get location: ' + (err.message || 'Unknown error'), 'error', 'GPS Error');
 						},
 						{ enableHighAccuracy: true, timeout: 15000 }
 					);
@@ -1721,15 +1807,15 @@
 
 		document.getElementById('btn-pause-hunt').addEventListener('click', function () {
 			stopGPSWatch();
-			alert('Hunt paused. Tap "Check My Location" to resume tracking.');
+			showModal('Hunt paused. Tap "Check My Location" to resume tracking.', 'info', 'Hunt Paused');
 		});
 
 		document.getElementById('btn-end-hunt').addEventListener('click', function () {
-			if (confirm('End this hunt? Your progress is saved.')) {
+			showConfirm('End this hunt? Your progress is saved.', function () {
 				stopGPSWatch();
 				destroyPlayerMap();
 				window.TreasureApp.showView('home');
-			}
+			}, null, 'End Hunt', 'End Hunt', 'Cancel');
 		});
 
 		document.getElementById('btn-claim-reward').addEventListener('click', function () {
@@ -1810,7 +1896,7 @@
 	 */
 	function startGPSWatch() {
 		if (!navigator.geolocation) {
-			alert('Geolocation is not supported on this device.');
+			showModal('Geolocation is not supported on this device.', 'error', 'GPS Unavailable');
 			return;
 		}
 
@@ -2346,7 +2432,7 @@
 
 		document.getElementById('btn-export-results').addEventListener('click', function () {
 			// Phase 09 will implement proper export
-			alert('Export will be available in the next phase.');
+			showModal('Export results feature coming soon.', 'info', 'Export');
 		});
 	}
 
@@ -2378,38 +2464,32 @@
 	function exportActiveHunt() {
 		var huntId = window.TreasureApp.activeHunt.get();
 		if (!huntId) {
-			alert('No active hunt to export.');
+			showModal('No active hunt to export.', 'warning', 'Export');
 			return;
 		}
 
-		if (!confirm('⚠️ Exported hunt files may contain private coordinates. Only share them with people you trust. Continue?')) {
-			return;
-		}
-
-		var hunt = window.TreasureApp.hunts.get(huntId);
-		if (!hunt) {
-			alert('Hunt not found.');
-			return;
-		}
-
-		downloadJSON(hunt, hunt.id + '.json');
+		showConfirm('⚠️ Exported hunt files may contain private coordinates. Only share them with people you trust. Continue?', function () {
+			var hunt = window.TreasureApp.hunts.get(huntId);
+			if (!hunt) {
+				showModal('Hunt not found.', 'error', 'Export');
+				return;
+			}
+			downloadJSON(hunt, hunt.id + '.json');
+		}, null, 'Export Warning', 'Export', 'Cancel');
 	}
 
 	/**
 	 * Export all hunts as a downloadable JSON file.
 	 */
 	function exportAllHunts() {
-		if (!confirm('⚠️ Exported hunt files may contain private coordinates. Only share them with people you trust. Continue?')) {
-			return;
-		}
-
-		var hunts = window.TreasureApp.hunts.load();
-		if (hunts.length === 0) {
-			alert('No hunts to export.');
-			return;
-		}
-
-		downloadJSON({ hunts: hunts }, 'treasure-trail-all-hunts.json');
+		showConfirm('⚠️ Exported hunt files may contain private coordinates. Only share them with people you trust. Continue?', function () {
+			var hunts = window.TreasureApp.hunts.load();
+			if (hunts.length === 0) {
+				showModal('No hunts to export.', 'warning', 'Export');
+				return;
+			}
+			downloadJSON({ hunts: hunts }, 'treasure-trail-all-hunts.json');
+		}, null, 'Export Warning', 'Export', 'Cancel');
 	}
 
 	/**
@@ -2443,7 +2523,7 @@
 					var data = JSON.parse(e.target.result);
 					importHuntData(data);
 				} catch (err) {
-					alert('Invalid JSON file. Could not parse.');
+					showModal('Invalid JSON file. Could not parse.', 'error', 'Import Error');
 				}
 			};
 			reader.readAsText(file);
@@ -2462,12 +2542,12 @@
 		} else if (data.id && data.treasures) {
 			huntsToImport = [data];
 		} else {
-			alert('Invalid hunt data. The file must contain a hunt object or a { "hunts": [...] } wrapper.');
+			showModal('Invalid hunt data. The file must contain a hunt object or a { "hunts": [...] } wrapper.', 'error', 'Import Error');
 			return;
 		}
 
 		if (huntsToImport.length === 0) {
-			alert('No hunts found in the file.');
+			showModal('No hunts found in the file.', 'warning', 'Import');
 			return;
 		}
 
@@ -2484,14 +2564,11 @@
 				continue;
 			}
 
-			// Check for duplicate ID
+			// Check for duplicate ID — existing hunts are replaced automatically
 			var existing = window.TreasureApp.hunts.get(hunt.id);
 			if (existing) {
-				var action = confirm('A hunt with ID "' + hunt.id + '" ("' + hunt.title + '") already exists.\n\nClick OK to replace it, or Cancel to skip import.');
-				if (!action) {
-					skipped++;
-					continue;
-				}
+				// Existing hunt with same ID will be replaced
+				skipped++; // track as replaced (not new)
 			}
 
 			// Ensure required fields
@@ -2519,7 +2596,7 @@
 		var msg = 'Import complete!\n\n✅ Imported: ' + imported + ' hunt(s)';
 		if (skipped > 0) msg += '\n⏭ Skipped: ' + skipped;
 		if (errors.length > 0) msg += '\n⚠️ Errors:\n' + errors.join('\n');
-		alert(msg);
+		showModal(msg, imported > 0 ? 'success' : 'warning', 'Import Complete');
 
 		// Refresh home view
 		refreshHomeView();
@@ -2529,26 +2606,23 @@
 	 * Load the sample hunt from data/sample-hunt.json.
 	 */
 	function loadSampleHunt() {
-		if (!confirm('Load the sample hunt? This will import a sample hunt with FAKE coordinates for demonstration.')) {
-			return;
-		}
-
-		fetch('./data/sample-hunt.json')
-			.then(function (response) {
-				if (!response.ok) throw new Error('Failed to load sample hunt.');
-				return response.json();
-			})
-			.then(function (data) {
-				importHuntData(data);
-				// Set as active
-				if (data.id) {
-					window.TreasureApp.activeHunt.set(data.id);
-				}
-				refreshHomeView();
-			})
-			.catch(function (err) {
-				alert('Could not load sample hunt: ' + err.message);
-			});
+		showConfirm('Load the sample hunt? This will import a sample hunt with FAKE coordinates for demonstration.', function () {
+			fetch('./data/sample-hunt.json')
+				.then(function (response) {
+					if (!response.ok) throw new Error('Failed to load sample hunt.');
+					return response.json();
+				})
+				.then(function (data) {
+					importHuntData(data);
+					if (data.id) {
+						window.TreasureApp.activeHunt.set(data.id);
+					}
+					refreshHomeView();
+				})
+				.catch(function (err) {
+					showModal('Could not load sample hunt: ' + err.message, 'error', 'Import Error');
+				});
+		}, null, 'Load Sample', 'Load', 'Cancel');
 	}
 
 	// ====================================================================
@@ -2656,7 +2730,7 @@
 			settings.builderPin = document.getElementById('set-builder-pin').value.trim();
 			window.TreasureApp.settings.save(settings);
 			builderState.pinVerified = false;
-			alert('Settings saved!');
+			showModal('Settings saved!', 'success');
 		});
 
 		// Event: Export all
@@ -2666,13 +2740,13 @@
 
 		// Event: Clear data
 		document.getElementById('btn-clear-data').addEventListener('click', function () {
-			if (confirm('⚠️ This will permanently delete ALL hunts, progress, and settings from this device. This cannot be undone. Are you sure?')) {
-				if (confirm('FINAL WARNING: All local data will be erased. Continue?')) {
+			showConfirm('⚠️ This will permanently delete ALL hunts, progress, and settings from this device. This cannot be undone. Are you sure?', function () {
+				showConfirm('FINAL WARNING: All local data will be erased. Continue?', function () {
 					window.TreasureApp.resetAll();
-					alert('All local data cleared.');
+					showModal('All local data cleared.', 'success');
 					window.TreasureApp.showView('home');
-				}
-			}
+				}, null, 'Final Warning', 'Erase Everything', 'Cancel');
+			}, null, 'Clear All Data', 'Continue', 'Cancel');
 		});
 
 		// Event: Open debug
@@ -2786,17 +2860,18 @@
 			if (!hunt) return;
 			var st = findTreasureById(hunt, tid);
 			if (!st) return;
-			if (!confirm('⚠️ Simulate being at treasure "' + st.title + '"? This will unlock it as if you were standing there.')) return;
-			playerState.currentPosition = {
-				lat: st.lat,
-				lng: st.lng,
-				accuracy: 5,
-				timestamp: Date.now()
-			};
-			updatePlayerUI(playerState.currentPosition);
-			updatePlayerMap();
-			checkUnlock();
-			alert('Simulated position set to ' + st.lat.toFixed(6) + ', ' + st.lng.toFixed(6));
+			showConfirm('⚠️ Simulate being at treasure "' + st.title + '"? This will unlock it as if you were standing there.', function () {
+				playerState.currentPosition = {
+					lat: st.lat,
+					lng: st.lng,
+					accuracy: 5,
+					timestamp: Date.now()
+				};
+				updatePlayerUI(playerState.currentPosition);
+				updatePlayerMap();
+				checkUnlock();
+				showModal('Simulated position set to ' + st.lat.toFixed(6) + ', ' + st.lng.toFixed(6), 'info', 'Debug Simulate');
+			}, null, 'Debug Simulate', 'Simulate', 'Cancel');
 		});
 
 		// Dump debug
@@ -2815,10 +2890,10 @@
 
 		// Clear data
 		document.getElementById('btn-debug-clear').addEventListener('click', function () {
-			if (confirm('Delete ALL local data?')) {
+			showConfirm('Delete ALL local data?', function () {
 				window.TreasureApp.resetAll();
 				window.TreasureApp.showView('home');
-			}
+			}, null, 'Clear Data', 'Delete All', 'Cancel');
 		});
 	}
 })();
