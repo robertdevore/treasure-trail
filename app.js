@@ -475,6 +475,28 @@
 
 	console.log('Treasure Trail loaded. Storage available:', storageAvailable);
 
+	/**
+	 * Return icon placeholder markup for Lucide.
+	 * @param {string} name
+	 * @param {string} [className]
+	 * @returns {string}
+	 */
+	function icon(name, className) {
+		className = className || '';
+		return '<i data-lucide="' + name + '" class="tt-icon ' + className + '"></i>';
+	}
+
+	/**
+	 * Render all Lucide placeholders currently in the DOM.
+	 */
+	function renderLucideIcons() {
+		try {
+			if (window.lucide && window.lucide.createIcons) {
+				window.lucide.createIcons();
+			}
+		} catch (e) {}
+	}
+
 	// === Custom Modal System ===
 
 	/**
@@ -489,17 +511,18 @@
 		title = title || '';
 		onClose = onClose || function () {};
 
-		var icons = { info: '💬', success: '✅', error: '❌', warning: '⚠️' };
+		var icons = { info: 'message-circle', success: 'circle-check', error: 'circle-x', warning: 'triangle-alert' };
 		var colors = { info: 'var(--accent)', success: 'var(--accent)', error: 'var(--danger)', warning: 'var(--gold)' };
 
 		var modal = document.getElementById('custom-modal');
-		document.getElementById('custom-modal-icon').textContent = icons[type] || icons.info;
+		document.getElementById('custom-modal-icon').innerHTML = icon(icons[type] || icons.info);
 		document.getElementById('custom-modal-title').textContent = title || (type === 'error' ? 'Error' : type === 'success' ? 'Success' : type === 'warning' ? 'Warning' : '');
 		document.getElementById('custom-modal-title').style.color = colors[type] || colors.info;
 		document.getElementById('custom-modal-body').textContent = message;
 		document.getElementById('custom-modal-footer').innerHTML = '<button class="btn btn-primary" id="modal-ok-btn">OK</button>';
 
 		modal.classList.add('active');
+		renderLucideIcons();
 
 		document.getElementById('modal-ok-btn').addEventListener('click', function () {
 			modal.classList.remove('active');
@@ -530,7 +553,7 @@
 		cancelText = cancelText || 'Cancel';
 
 		var modal = document.getElementById('custom-modal');
-		document.getElementById('custom-modal-icon').textContent = '❓';
+		document.getElementById('custom-modal-icon').innerHTML = icon('help-circle');
 		document.getElementById('custom-modal-title').textContent = title;
 		document.getElementById('custom-modal-title').style.color = 'var(--gold)';
 		document.getElementById('custom-modal-body').textContent = message;
@@ -539,6 +562,7 @@
 			'<button class="btn btn-primary" id="modal-confirm-btn">' + confirmText + '</button>';
 
 		modal.classList.add('active');
+		renderLucideIcons();
 
 		function dismiss() {
 			modal.classList.remove('active');
@@ -581,6 +605,7 @@
 			if (currentView === 'player' && viewName !== 'player') {
 				stopGPSWatch();
 				destroyPlayerMap();
+				teardownRaceSession();
 			}
 			currentView = viewName;
 			// View-specific lifecycle
@@ -601,6 +626,7 @@
 			if (viewName === 'debug') {
 				renderDebugView();
 			}
+			renderLucideIcons();
 		}
 	};
 
@@ -634,39 +660,43 @@
 		if (!el) return;
 
 		if (!navigator.geolocation) {
-			el.textContent = '🛰️ GPS: Not supported on this device.';
+			el.innerHTML = icon('satellite') + 'GPS: Not supported on this device.';
 			el.style.color = 'var(--danger)';
 			el.style.cursor = 'default';
+			renderLucideIcons();
 			return;
 		}
 
 		if (navigator.permissions && navigator.permissions.query) {
 			navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
 				if (result.state === 'granted') {
-					el.innerHTML = '🛰️ GPS: <strong>Ready ✓</strong>';
+					el.innerHTML = icon('satellite') + 'GPS: <strong>Ready</strong>';
 					el.style.color = 'var(--accent)';
 					el.style.cursor = 'default';
 				} else if (result.state === 'denied') {
-					el.innerHTML = '🛰️ GPS: <strong>Blocked ✗</strong> — tap to learn how to enable';
+					el.innerHTML = icon('satellite') + 'GPS: <strong>Blocked</strong> - tap to learn how to enable';
 					el.style.color = 'var(--danger)';
 					el.style.cursor = 'pointer';
 				} else {
-					el.innerHTML = '🛰️ GPS: <strong>Tap here to enable</strong> — or start a hunt';
+					el.innerHTML = icon('satellite') + 'GPS: <strong>Tap here to enable</strong> - or start a hunt';
 					el.style.color = 'var(--gold)';
 					el.style.cursor = 'pointer';
 				}
+				renderLucideIcons();
 				result.addEventListener('change', function () {
 					updateGPSIndicator();
 				});
 			}).catch(function () {
-				el.innerHTML = '🛰️ GPS: <strong>Tap here to request</strong>';
+				el.innerHTML = icon('satellite') + 'GPS: <strong>Tap here to request</strong>';
 				el.style.color = 'var(--gold)';
 				el.style.cursor = 'pointer';
+				renderLucideIcons();
 			});
 		} else {
-			el.innerHTML = '🛰️ GPS: <strong>Tap here to enable</strong>';
+			el.innerHTML = icon('satellite') + 'GPS: <strong>Tap here to enable</strong>';
 			el.style.color = 'var(--gold)';
 			el.style.cursor = 'pointer';
+			renderLucideIcons();
 		}
 
 		// Make GPS indicator clickable to request permission
@@ -698,17 +728,18 @@
 				var hunt = window.TreasureApp.hunts.get(activeHuntId);
 				if (hunt && hunt.treasures && hunt.treasures.length > 0) {
 					startBtn.disabled = false;
-					startBtn.textContent = '▶ Start Hunt: ' + hunt.title;
+					startBtn.innerHTML = icon('play') + 'Start Hunt: ' + escapeHtml(hunt.title);
 				} else {
 					startBtn.disabled = true;
-					startBtn.textContent = '▶ Start Hunt (no treasures)';
+					startBtn.innerHTML = icon('play') + 'Start Hunt (no treasures)';
 				}
 			} else {
 				startBtn.disabled = true;
-				startBtn.textContent = '▶ Start Hunt (no active hunt)';
+				startBtn.innerHTML = icon('play') + 'Start Hunt (no active hunt)';
 			}
 		}
 		updateGPSIndicator();
+		renderLucideIcons();
 	}
 
 	// === Home Screen Button Wiring ===
@@ -742,6 +773,7 @@
 
 	updateGPSIndicator();
 	refreshHomeView();
+	renderLucideIcons();
 
 	// ====================================================================
 	// BUILDER VIEW (Phase 05)
@@ -791,7 +823,7 @@
 			'<div id="pin-error" class="alert alert-error" style="display:none;"></div>' +
 			'<button class="btn btn-primary" id="btn-pin-submit">Unlock</button>' +
 			'<button class="btn btn-outline" id="btn-pin-cancel" style="margin-top:0.5rem;">Back to Home</button>' +
-			'<p style="font-size:0.75rem;color:var(--danger);margin-top:1rem;">⚠️ The builder PIN is stored as plain text and is not secure. It provides only a lightweight guard against accidental edits.</p>' +
+			'<p style="font-size:0.75rem;color:var(--danger);margin-top:1rem;">The builder PIN is stored as plain text and is not secure. It provides only a lightweight guard against accidental edits.</p>' +
 			'</div>';
 
 		document.getElementById('btn-pin-submit').addEventListener('click', function () {
@@ -817,11 +849,12 @@
 	function renderHuntList(container) {
 		var hunts = window.TreasureApp.hunts.load();
 
-		var html = '<button class="btn btn-primary btn-large" id="btn-create-hunt">➕ Create New Hunt</button>' +
+		var html = '<button class="btn btn-primary btn-large" id="btn-create-hunt">' + icon('circle-plus') + 'Create New Hunt</button>' +
 			'<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem;">' +
-			'<button class="btn btn-outline btn-small" id="btn-builder-export-active">📤 Export Active</button>' +
-			'<button class="btn btn-outline btn-small" id="btn-builder-export-all">🗂 Export All</button>' +
-			'<button class="btn btn-outline btn-small" id="btn-builder-import">📥 Import Hunt</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-builder-share-active">' + icon('share-2') + 'Share Active</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-builder-export-active">' + icon('file-down') + 'Export Active</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-builder-export-all">' + icon('download') + 'Export All</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-builder-import">' + icon('file-up') + 'Import Hunt</button>' +
 			'</div>';
 
 		if (hunts.length === 0) {
@@ -840,23 +873,26 @@
 					'</div>' +
 					'<div class="card-actions">' +
 					(isActive ? '<span style="color:var(--accent);font-size:0.8rem;">Active</span> ' : '') +
-					'<button class="btn btn-small btn-outline btn-edit-hunt" data-id="' + h.id + '">✏️</button>' +
-					'<button class="btn btn-small btn-outline btn-export-hunt" data-id="' + h.id + '" title="Export this hunt">📤</button>' +
-					'<button class="btn btn-small btn-outline btn-activate-hunt" data-id="' + h.id + '" title="Set as active hunt">▶</button>' +
-					'<button class="btn btn-small btn-danger btn-delete-hunt" data-id="' + h.id + '">🗑</button>' +
+					'<button class="btn btn-small btn-outline btn-edit-hunt" data-id="' + h.id + '">' + icon('pencil') + '</button>' +
+					'<button class="btn btn-small btn-outline btn-share-hunt" data-id="' + h.id + '" title="Share this hunt">' + icon('share-2') + '</button>' +
+					'<button class="btn btn-small btn-outline btn-export-hunt" data-id="' + h.id + '" title="Export this hunt">' + icon('file-down') + '</button>' +
+					'<button class="btn btn-small btn-outline btn-activate-hunt" data-id="' + h.id + '" title="Set as active hunt">' + icon('play') + '</button>' +
+					'<button class="btn btn-small btn-danger btn-delete-hunt" data-id="' + h.id + '">' + icon('trash-2') + '</button>' +
 					'</div>' +
 					'</div>' +
-					'<button class="btn btn-small btn-outline btn-open-treasures" data-id="' + h.id + '" style="margin-top:0.5rem;">📋 Edit Treasures</button>' +
+					'<button class="btn btn-small btn-outline btn-open-treasures" data-id="' + h.id + '" style="margin-top:0.5rem;">' + icon('list-todo') + 'Edit Treasures</button>' +
 					'</div>';
 			}
 			html += '</div>';
 		}
 
 		html += '<div style="margin-top:1.5rem;">' +
-			'<button class="btn btn-outline" id="btn-builder-settings">⚙️ Builder Settings</button>' +
+			'<button class="btn btn-outline" id="btn-builder-settings">' + icon('settings') + 'Builder Settings</button>' +
 			'</div>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
+		renderLucideIcons();
 
 		// Event: Create New Hunt
 		document.getElementById('btn-create-hunt').addEventListener('click', function () {
@@ -870,6 +906,13 @@
 		if (btnBuilderExportActive) {
 			btnBuilderExportActive.addEventListener('click', function () {
 				exportActiveHunt();
+			});
+		}
+
+		var btnBuilderShareActive = document.getElementById('btn-builder-share-active');
+		if (btnBuilderShareActive) {
+			btnBuilderShareActive.addEventListener('click', function () {
+				shareActiveHunt();
 			});
 		}
 
@@ -889,27 +932,33 @@
 
 		// Event: Edit Hunt
 		bindElements('.btn-edit-hunt', 'click', function (e) {
-			var huntId = e.target.getAttribute('data-id');
+			var huntId = e.currentTarget.getAttribute('data-id');
 			builderState.editingHuntId = huntId;
 			renderHuntForm(container);
 		});
 
 		// Event: Set Active Hunt
 		bindElements('.btn-activate-hunt', 'click', function (e) {
-			var huntId = e.target.getAttribute('data-id');
+			var huntId = e.currentTarget.getAttribute('data-id');
 			window.TreasureApp.activeHunt.set(huntId);
 			renderHuntList(container);
 		});
 
 		// Event: Export Hunt
 		bindElements('.btn-export-hunt', 'click', function (e) {
-			var huntId = e.target.getAttribute('data-id');
+			var huntId = e.currentTarget.getAttribute('data-id');
 			exportHuntById(huntId);
+		});
+
+		// Event: Share Hunt
+		bindElements('.btn-share-hunt', 'click', function (e) {
+			var huntId = e.currentTarget.getAttribute('data-id');
+			shareHuntById(huntId);
 		});
 
 		// Event: Delete Hunt
 		bindElements('.btn-delete-hunt', 'click', function (e) {
-			var huntId = e.target.getAttribute('data-id');
+			var huntId = e.currentTarget.getAttribute('data-id');
 			showConfirm('Delete this hunt and all its treasures? This cannot be undone.', function () {
 				window.TreasureApp.hunts.delete(huntId);
 				renderHuntList(container);
@@ -918,7 +967,7 @@
 
 		// Event: Open Treasures
 		bindElements('.btn-open-treasures', 'click', function (e) {
-			var huntId = e.target.getAttribute('data-id');
+			var huntId = e.currentTarget.getAttribute('data-id');
 			builderState.editingHuntId = huntId;
 			renderTreasureList(container);
 		});
@@ -971,13 +1020,14 @@
 			'<label for="hunt-reward">Final Reward Text</label>' +
 			'<textarea id="hunt-reward" placeholder="e.g., You unlocked You-Pick Dinner Night! 🍕">' + escapeHtml(hunt.finalReward || '') + '</textarea>' +
 			'</div>' +
-			'<div class="alert alert-warning" style="font-size:0.8rem;">⚠️ This hunt is stored only on this device. Export it if you want to back it up or share it.</div>' +
+			'<div class="alert alert-warning" style="font-size:0.8rem;">This hunt is stored only on this device. Export it if you want to back it up or share it.</div>' +
 			'<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">' +
-			'<button class="btn btn-primary" id="btn-save-hunt">💾 Save Hunt</button>' +
+			'<button class="btn btn-primary" id="btn-save-hunt">' + icon('save') + 'Save Hunt</button>' +
 			'<button class="btn btn-outline" id="btn-cancel-hunt">Cancel</button>' +
 			'</div>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
 
 		document.getElementById('btn-save-hunt').addEventListener('click', function () {
 			hunt.title = document.getElementById('hunt-title').value.trim();
@@ -1022,10 +1072,10 @@
 
 		var treasures = hunt.treasures || [];
 		var html = '<div class="view-header" style="border-bottom:none;padding:0;margin-bottom:0.75rem;">' +
-			'<button class="btn btn-back" id="btn-back-to-hunts">← Hunts</button>' +
+			'<button class="btn btn-back" id="btn-back-to-hunts">' + icon('arrow-left') + 'Hunts</button>' +
 			'<h3 style="flex:1;">' + escapeHtml(hunt.title) + '</h3>' +
 			'</div>' +
-			'<button class="btn btn-primary btn-large" id="btn-add-treasure" style="margin-bottom:1rem;">📍 Add Treasure</button>';
+			'<button class="btn btn-primary btn-large" id="btn-add-treasure" style="margin-bottom:1rem;">' + icon('map-pin') + 'Add Treasure</button>';
 
 		if (treasures.length === 0) {
 			html += '<p class="placeholder-text">No treasures yet. Add your first hidden treasure!</p>';
@@ -1036,15 +1086,15 @@
 				html += '<li class="treasure-item">' +
 					'<div class="treasure-item-header">' +
 					'<div class="treasure-item-title">' +
-					'<span class="treasure-icon">' + (t.icon || '📍') + '</span>' +
+					'<span class="treasure-icon">' + escapeHtml(t.icon || 'Coin') + '</span>' +
 					'<span>' + escapeHtml(t.title || 'Untitled Treasure') + '</span>' +
 					'</div>' +
 					'<div class="card-actions">' +
 					(i > 0 ? '<button class="btn btn-small btn-outline btn-move-up" data-idx="' + i + '">↑</button>' : '') +
 					(i < treasures.length - 1 ? '<button class="btn btn-small btn-outline btn-move-down" data-idx="' + i + '">↓</button>' : '') +
-					'<button class="btn btn-small btn-outline btn-edit-treasure" data-id="' + t.id + '">✏️</button>' +
-					'<button class="btn btn-small btn-outline btn-dup-treasure" data-id="' + t.id + '">📋</button>' +
-					'<button class="btn btn-small btn-danger btn-del-treasure" data-id="' + t.id + '">🗑</button>' +
+					'<button class="btn btn-small btn-outline btn-edit-treasure" data-id="' + t.id + '">' + icon('pencil') + '</button>' +
+					'<button class="btn btn-small btn-outline btn-dup-treasure" data-id="' + t.id + '">' + icon('copy') + '</button>' +
+					'<button class="btn btn-small btn-danger btn-del-treasure" data-id="' + t.id + '">' + icon('trash-2') + '</button>' +
 					'</div>' +
 					'</div>' +
 					'<div class="treasure-coords">' + t.lat.toFixed(6) + ', ' + t.lng.toFixed(6) + ' · Radius: ' + (t.radiusMeters || hunt.defaultRadiusMeters || 25) + 'm</div>' +
@@ -1054,11 +1104,12 @@
 		}
 
 		html += '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem;">' +
-			'<button class="btn btn-outline" id="btn-edit-hunt-details">⚙️ Edit Hunt Details</button>' +
-			'<button class="btn btn-danger btn-small" id="btn-reset-progress">🔄 Reset Progress</button>' +
+			'<button class="btn btn-outline" id="btn-edit-hunt-details">' + icon('settings') + 'Edit Hunt Details</button>' +
+			'<button class="btn btn-danger btn-small" id="btn-reset-progress">' + icon('rotate-ccw') + 'Reset Progress</button>' +
 			'</div>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
 
 		// Render map markers in builder map
 		showBuilderMap();
@@ -1095,13 +1146,13 @@
 
 		// Edit treasure
 		bindElements('.btn-edit-treasure', 'click', function (e) {
-			builderState.editingTreasureId = e.target.getAttribute('data-id');
+			builderState.editingTreasureId = e.currentTarget.getAttribute('data-id');
 			renderTreasureForm(container);
 		});
 
 		// Duplicate treasure
 		bindElements('.btn-dup-treasure', 'click', function (e) {
-			var tId = e.target.getAttribute('data-id');
+			var tId = e.currentTarget.getAttribute('data-id');
 			var treasure = findTreasureById(hunt, tId);
 			if (treasure) {
 				var dup = JSON.parse(JSON.stringify(treasure));
@@ -1116,7 +1167,7 @@
 
 		// Delete treasure
 		bindElements('.btn-del-treasure', 'click', function (e) {
-			var tId = e.target.getAttribute('data-id');
+			var tId = e.currentTarget.getAttribute('data-id');
 			showConfirm('Delete this treasure?', function () {
 				hunt.treasures = hunt.treasures.filter(function (t) { return t.id !== tId; });
 				hunt.updatedAt = new Date().toISOString();
@@ -1127,7 +1178,7 @@
 
 		// Move up
 		bindElements('.btn-move-up', 'click', function (e) {
-			var idx = parseInt(e.target.getAttribute('data-idx'), 10);
+			var idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
 			if (idx > 0) {
 				var tmp = hunt.treasures[idx];
 				hunt.treasures[idx] = hunt.treasures[idx - 1];
@@ -1140,7 +1191,7 @@
 
 		// Move down
 		bindElements('.btn-move-down', 'click', function (e) {
-			var idx = parseInt(e.target.getAttribute('data-idx'), 10);
+			var idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
 			if (idx < hunt.treasures.length - 1) {
 				var tmp = hunt.treasures[idx];
 				hunt.treasures[idx] = hunt.treasures[idx + 1];
@@ -1183,7 +1234,7 @@
 			treasure = {
 				id: generateId(),
 				title: '',
-				icon: '📍',
+				icon: 'Coin',
 				lat: 0,
 				lng: 0,
 				radiusMeters: hunt.defaultRadiusMeters || 25,
@@ -1201,12 +1252,12 @@
 			'<input type="text" id="treasure-title" value="' + escapeAttr(treasure.title) + '" placeholder="e.g., The Big Tree" maxlength="100">' +
 			'</div>' +
 			'<div class="form-group">' +
-			'<label for="treasure-icon">Icon (emoji)</label>' +
-			'<input type="text" id="treasure-icon" value="' + escapeAttr(treasure.icon || '📍') + '" placeholder="📍" maxlength="10">' +
+			'<label for="treasure-icon">Icon</label>' +
+			'<input type="text" id="treasure-icon" value="' + escapeAttr(treasure.icon || 'Coin') + '" placeholder="Coin" maxlength="20">' +
 			'</div>' +
-			'<p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem;">📍 Click on the map to set the treasure location, or enter coordinates below.</p>' +
+			'<p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem;">Click on the map to set the treasure location, or enter coordinates below.</p>' +
 			'<div id="treasure-form-map" class="map-container" style="height:250px;margin-bottom:0.75rem;"></div>' +
-			'<button class="btn btn-outline btn-small" id="btn-use-my-location-form" style="margin-bottom:0.75rem;">📍 Use My Current Location</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-use-my-location-form" style="margin-bottom:0.75rem;">' + icon('locate-fixed') + 'Use My Current Location</button>' +
 			'<div class="form-row">' +
 			'<div class="form-group">' +
 			'<label for="treasure-lat">Latitude *</label>' +
@@ -1231,7 +1282,7 @@
 			'</div>' +
 			'<div class="form-group">' +
 			'<label for="treasure-found-msg">Found Message</label>' +
-			'<input type="text" id="treasure-found-msg" value="' + escapeAttr(treasure.foundMessage || '') + '" placeholder="You found it! 🎉">' +
+			'<input type="text" id="treasure-found-msg" value="' + escapeAttr(treasure.foundMessage || '') + '" placeholder="You found it!">' +
 			'</div>' +
 			'<div class="form-group">' +
 			'<label for="treasure-reward">Reward Text</label>' +
@@ -1242,11 +1293,12 @@
 			'<textarea id="treasure-notes" placeholder="Notes for yourself...">' + escapeHtml(treasure.privateNotes || '') + '</textarea>' +
 			'</div>' +
 			'<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">' +
-			'<button class="btn btn-primary" id="btn-save-treasure">💾 Save Treasure</button>' +
+			'<button class="btn btn-primary" id="btn-save-treasure">' + icon('save') + 'Save Treasure</button>' +
 			'<button class="btn btn-outline" id="btn-cancel-treasure">Cancel</button>' +
 			'</div>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
 
 		// Initialize mini-map for treasure form
 		var treasureMap = null;
@@ -1346,7 +1398,7 @@
 			var t = {
 				id: treasure.id,
 				title: document.getElementById('treasure-title').value.trim(),
-				icon: document.getElementById('treasure-icon').value.trim() || '📍',
+				icon: document.getElementById('treasure-icon').value.trim() || 'Coin',
 				lat: parseFloat(document.getElementById('treasure-lat').value),
 				lng: parseFloat(document.getElementById('treasure-lng').value),
 				radiusMeters: parseInt(document.getElementById('treasure-radius').value, 10) || hunt.defaultRadiusMeters || 25,
@@ -1392,7 +1444,7 @@
 	 */
 	function renderBuilderSettings(container) {
 		var settings = window.TreasureApp.settings.load();
-		var html = '<h3>⚙️ Builder Settings</h3>' +
+		var html = '<h3 style="display:inline-flex;align-items:center;gap:0.35rem;">' + icon('settings') + 'Builder Settings</h3>' +
 			'<div class="toggle-group">' +
 			'<label><input type="checkbox" id="builder-pin-enabled"' + (settings.builderPinEnabled ? ' checked' : '') + '> Enable Builder PIN</label>' +
 			'</div>' +
@@ -1400,13 +1452,14 @@
 			'<label for="builder-pin">PIN (numbers only, max 20 digits)</label>' +
 			'<input type="text" id="builder-pin" value="' + escapeAttr(settings.builderPin || '') + '" maxlength="20" inputmode="numeric" pattern="[0-9]*">' +
 			'</div>' +
-			'<p style="font-size:0.75rem;color:var(--danger);margin-bottom:1rem;">⚠️ The PIN is stored as plain text in localStorage. It provides a lightweight guard, not real security.</p>' +
+			'<p style="font-size:0.75rem;color:var(--danger);margin-bottom:1rem;">The PIN is stored as plain text in localStorage. It provides a lightweight guard, not real security.</p>' +
 			'<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">' +
-			'<button class="btn btn-primary" id="btn-save-builder-settings">💾 Save</button>' +
+			'<button class="btn btn-primary" id="btn-save-builder-settings">' + icon('save') + 'Save</button>' +
 			'<button class="btn btn-outline" id="btn-cancel-builder-settings">Back</button>' +
 			'</div>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
 
 		document.getElementById('builder-pin-enabled').addEventListener('change', function () {
 			document.getElementById('builder-pin-group').style.display = this.checked ? '' : 'none';
@@ -1476,7 +1529,7 @@
 		var mapEl = document.getElementById('builder-map');
 		if (!mapEl) return null;
 		if (typeof L === 'undefined') {
-			mapEl.innerHTML = '<p style="color:var(--danger);padding:1rem;text-align:center;">⚠️ Map library failed to load. Check your network connection.</p>';
+			mapEl.innerHTML = '<p style="color:var(--danger);padding:1rem;text-align:center;">Map library failed to load. Check your network connection.</p>';
 			return null;
 		}
 		builderMap = L.map('builder-map', {
@@ -1531,9 +1584,9 @@
 			}).addTo(map);
 
 			// Popup
-			var popupHtml = '<strong>' + escapeHtml(t.icon || '📍') + ' ' + escapeHtml(t.title || 'Treasure') + '</strong><br>' +
+			var popupHtml = '<strong>' + escapeHtml(t.icon || 'Coin') + ' ' + escapeHtml(t.title || 'Treasure') + '</strong><br>' +
 				'<small>' + t.lat.toFixed(6) + ', ' + t.lng.toFixed(6) + '</small><br>' +
-				'<button class="btn-map-edit" data-tid="' + t.id + '" style="font-size:0.8rem;">✏️ Edit</button> ';
+				'<button class="btn-map-edit" data-tid="' + t.id + '" style="font-size:0.8rem;">Edit</button> ';
 			marker.bindPopup(popupHtml);
 
 			marker.on('popupopen', function () {
@@ -1651,6 +1704,245 @@
 		audioUnlocked: false // track if user interacted to allow audio
 	};
 
+	var raceState = {
+		peer: null,
+		conn: null,
+		roomCode: '',
+		role: '',
+		myName: 'Player',
+		opponentName: 'Rival',
+		connected: false,
+		status: 'Not connected',
+		trailToken: '',
+		trailMismatch: false,
+		myScore: 0,
+		opponentScore: 0
+	};
+
+	/**
+	 * Build a lightweight token representing the active trail.
+	 * @param {Object} hunt
+	 * @returns {string}
+	 */
+	function getTrailToken(hunt) {
+		if (!hunt) return '';
+		return [hunt.id || '', hunt.treasures ? hunt.treasures.length : 0, hunt.mode || 'anyOrder'].join(':');
+	}
+
+	/**
+	 * Update local race score from current progress.
+	 * @param {Object} progress
+	 */
+	function updateLocalRaceScore(progress) {
+		progress = progress || {};
+		raceState.myScore = (progress.foundTreasureIds && progress.foundTreasureIds.length) ? progress.foundTreasureIds.length : 0;
+	}
+
+	/**
+	 * Close any active race connection.
+	 */
+	function teardownRaceSession() {
+		try {
+			if (raceState.conn) raceState.conn.close();
+		} catch (e) {}
+		try {
+			if (raceState.peer) raceState.peer.destroy();
+		} catch (e) {}
+		raceState.peer = null;
+		raceState.conn = null;
+		raceState.connected = false;
+		raceState.role = '';
+		raceState.roomCode = '';
+		raceState.status = 'Not connected';
+		raceState.opponentName = 'Rival';
+		raceState.opponentScore = 0;
+		raceState.trailMismatch = false;
+	}
+
+	/**
+	 * Send a race event if connected.
+	 * @param {string} type
+	 * @param {Object} payload
+	 */
+	function sendRaceEvent(type, payload) {
+		if (!raceState.conn || !raceState.connected) return;
+		try {
+			raceState.conn.send({ type: type, payload: payload || {} });
+		} catch (e) {}
+	}
+
+	/**
+	 * Broadcast local score to connected rival.
+	 */
+	function syncRaceScore() {
+		sendRaceEvent('score', {
+			score: raceState.myScore
+		});
+	}
+
+	/**
+	 * Build race handshake payload.
+	 * @returns {Object}
+	 */
+	function getRaceHelloPayload() {
+		var hunt = window.TreasureApp.hunts.get(playerState.huntId);
+		return {
+			name: raceState.myName || 'Player',
+			trailToken: getTrailToken(hunt),
+			trailTitle: hunt ? (hunt.title || 'Hunt') : 'Hunt',
+			score: raceState.myScore
+		};
+	}
+
+	/**
+	 * Handle incoming race messages.
+	 * @param {Object} message
+	 */
+	function onRaceMessage(message) {
+		if (!message || !message.type) return;
+
+		if (message.type === 'hello') {
+			updateRaceStateFromHello(message.payload || {});
+			sendRaceEvent('hello-ack', getRaceHelloPayload());
+			return;
+		}
+
+		if (message.type === 'hello-ack') {
+			updateRaceStateFromHello(message.payload || {});
+			return;
+		}
+
+		if (message.type === 'score') {
+			var score = message.payload && typeof message.payload.score === 'number' ? message.payload.score : 0;
+			raceState.opponentScore = score;
+			renderPlayerView();
+			updatePlayerMap();
+		}
+	}
+
+	/**
+	 * Apply hello/ack payload to race state.
+	 * @param {Object} payload
+	 */
+	function updateRaceStateFromHello(payload) {
+		var hunt = window.TreasureApp.hunts.get(playerState.huntId);
+		raceState.opponentName = payload.name || 'Rival';
+		raceState.opponentScore = typeof payload.score === 'number' ? payload.score : raceState.opponentScore;
+		raceState.trailToken = getTrailToken(hunt);
+		raceState.trailMismatch = !!(payload.trailToken && raceState.trailToken && payload.trailToken !== raceState.trailToken);
+		if (raceState.trailMismatch) {
+			raceState.status = 'Connected (trail mismatch)';
+		} else {
+			raceState.status = 'Connected';
+		}
+		renderPlayerView();
+		updatePlayerMap();
+	}
+
+	/**
+	 * Wire up a data connection to another player.
+	 * @param {Object} conn
+	 */
+	function bindRaceConnection(conn) {
+		raceState.conn = conn;
+
+		conn.on('open', function () {
+			raceState.connected = true;
+			raceState.status = 'Connected';
+			sendRaceEvent('hello', getRaceHelloPayload());
+			syncRaceScore();
+			renderPlayerView();
+			updatePlayerMap();
+		});
+
+		conn.on('data', function (message) {
+			onRaceMessage(message);
+		});
+
+		conn.on('close', function () {
+			raceState.connected = false;
+			raceState.status = 'Disconnected';
+			raceState.opponentName = 'Rival';
+			raceState.opponentScore = 0;
+			renderPlayerView();
+			updatePlayerMap();
+		});
+
+		conn.on('error', function () {
+			raceState.connected = false;
+			raceState.status = 'Connection error';
+			renderPlayerView();
+			updatePlayerMap();
+		});
+	}
+
+	/**
+	 * Host a race session and display a room code.
+	 */
+	function hostRaceSession() {
+		if (typeof Peer === 'undefined') {
+			showModal('Live race requires the PeerJS library to load.', 'error', 'Race Unavailable');
+			return;
+		}
+
+		teardownRaceSession();
+		raceState.role = 'host';
+		raceState.status = 'Creating room...';
+
+		var peer = new Peer();
+		raceState.peer = peer;
+
+		peer.on('open', function (id) {
+			raceState.roomCode = id;
+			raceState.status = 'Waiting for rival...';
+			renderPlayerView();
+			updatePlayerMap();
+		});
+
+		peer.on('connection', function (conn) {
+			bindRaceConnection(conn);
+		});
+
+		peer.on('error', function (err) {
+			raceState.status = 'Race error: ' + (err && err.type ? err.type : 'unknown');
+			renderPlayerView();
+			updatePlayerMap();
+		});
+	}
+
+	/**
+	 * Join a race session by room code.
+	 * @param {string} roomCode
+	 */
+	function joinRaceSession(roomCode) {
+		if (typeof Peer === 'undefined') {
+			showModal('Live race requires the PeerJS library to load.', 'error', 'Race Unavailable');
+			return;
+		}
+		if (!roomCode) {
+			showModal('Enter a room code to join a race.', 'warning', 'Missing Code');
+			return;
+		}
+
+		teardownRaceSession();
+		raceState.role = 'join';
+		raceState.status = 'Joining room...';
+
+		var peer = new Peer();
+		raceState.peer = peer;
+
+		peer.on('open', function () {
+			var conn = peer.connect(roomCode);
+			bindRaceConnection(conn);
+		});
+
+		peer.on('error', function (err) {
+			raceState.status = 'Race error: ' + (err && err.type ? err.type : 'unknown');
+			renderPlayerView();
+			updatePlayerMap();
+		});
+	}
+
 	/**
 	 * Start the player hunt view.
 	 */
@@ -1676,6 +1968,8 @@
 			progress.foundTreasureIds = [];
 		}
 		window.TreasureApp.progress.save(playerState.huntId, progress);
+		updateLocalRaceScore(progress);
+		raceState.trailToken = getTrailToken(hunt);
 
 		window.TreasureApp.showView('player');
 		renderPlayerView();
@@ -1699,18 +1993,20 @@
 						playerState.playerMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
 					}
 					checkUnlock();
+						syncRaceScore();
 				},
 				function (err) {
 					var msg = '';
-					if (err.code === 1) msg = '⚠️ Location permission denied. Please enable in browser settings.';
-					else if (err.code === 2) msg = '⚠️ GPS unavailable. Check your signal and try again.';
-					else if (err.code === 3) msg = '⚠️ GPS request timed out. Try again.';
+						if (err.code === 1) msg = 'Location permission denied. Please enable in browser settings.';
+						else if (err.code === 2) msg = 'GPS unavailable. Check your signal and try again.';
+						else if (err.code === 3) msg = 'GPS request timed out. Try again.';
 					var wcEl = document.getElementById('warm-cold');
 					if (wcEl) {
-						wcEl.textContent = msg + ' Tap to retry.';
+							wcEl.innerHTML = icon('triangle-alert') + ' ' + msg + ' Tap to retry.';
 						wcEl.className = 'warm-cold cold';
 						wcEl.style.cursor = 'pointer';
 						wcEl.onclick = function () { startPlayerHunt(); };
+							renderLucideIcons();
 					}
 				},
 				{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -1734,8 +2030,9 @@
 		var foundCount = progress.foundTreasureIds ? progress.foundTreasureIds.length : 0;
 		var totalCount = hunt.treasures.length;
 		var allFound = foundCount >= totalCount;
+		updateLocalRaceScore(progress);
 
-		document.getElementById('player-hunt-title').textContent = '⚔️ ' + hunt.title;
+		document.getElementById('player-hunt-title').innerHTML = icon('crosshair') + escapeHtml(hunt.title);
 
 		// Target treasure
 		var target = getTargetTreasure(hunt, progress);
@@ -1746,7 +2043,7 @@
 		html += '<div class="player-stats">' +
 			'<div class="player-stat">' +
 			'<div class="stat-value">' + foundCount + ' / ' + totalCount + '</div>' +
-			'<div class="stat-label">Treasures Found</div>' +
+			'<div class="stat-label">Coins Found</div>' +
 			'</div>' +
 			'<div class="player-stat">' +
 			'<div class="stat-value" id="player-distance">---</div>' +
@@ -1756,43 +2053,124 @@
 
 		// Mode indicator
 		html += '<div style="text-align:center;font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem;">' +
-			'Mode: ' + (hunt.mode === 'orderedTrail' ? '🔗 Ordered Trail' : '🔀 Any Order') +
+			'Mode: ' + (hunt.mode === 'orderedTrail' ? 'Ordered Trail' : 'Any Order') +
 			'</div>';
 
+		// Live race panel
+		html += '<div class="card" style="margin-bottom:0.85rem;">' +
+			'<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">' +
+			'<strong style="display:inline-flex;align-items:center;gap:0.4rem;">' + icon('users') + 'Live Race</strong>' +
+			'<span style="font-size:0.75rem;color:var(--muted);" id="race-status">' + escapeHtml(raceState.status) + '</span>' +
+			'</div>' +
+			'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.6rem;">' +
+			'<div style="background:var(--panel-2);border-radius:12px;padding:0.45rem 0.55rem;">' +
+			'<div style="font-size:0.75rem;color:var(--muted);">You</div>' +
+			'<div style="font-weight:700;">' + raceState.myScore + ' coins</div>' +
+			'</div>' +
+			'<div style="background:var(--panel-2);border-radius:12px;padding:0.45rem 0.55rem;">' +
+			'<div style="font-size:0.75rem;color:var(--muted);">' + escapeHtml(raceState.opponentName) + '</div>' +
+			'<div style="font-weight:700;">' + raceState.opponentScore + ' coins</div>' +
+			'</div>' +
+			'</div>';
+
+		html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.6rem;">';
+		html += '<input id="race-name" type="text" maxlength="32" placeholder="Player name" value="' + escapeAttr(raceState.myName || 'Player') + '" style="flex:1;min-width:140px;padding:0.5rem;border:2px solid var(--panel-2);border-radius:10px;background:var(--panel);color:var(--text);">';
+		html += '<input id="race-code" type="text" maxlength="128" placeholder="Room code" style="flex:1;min-width:140px;padding:0.5rem;border:2px solid var(--panel-2);border-radius:10px;background:var(--panel);color:var(--text);" value="' + escapeAttr(raceState.roomCode || '') + '">';
+		html += '</div>';
+
+		html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.6rem;">' +
+			'<button class="btn btn-outline btn-small" id="btn-race-host">' + icon('wifi') + 'Host Race</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-race-join">' + icon('link') + 'Join Race</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-race-copy"' + (raceState.roomCode ? '' : ' disabled') + '>' + icon('copy') + 'Copy Code</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-race-disconnect"' + (raceState.connected || raceState.peer ? '' : ' disabled') + '>' + icon('unlink-2') + 'Leave Race</button>' +
+			'</div>';
+
+		if (raceState.trailMismatch) {
+			html += '<p style="margin-top:0.55rem;font-size:0.8rem;color:var(--danger);">Connected players are not on the same trail file. Export/share the same hunt JSON first.</p>';
+		}
+
+		html += '</div>';
+
 		// Warm/cold indicator
-		html += '<div id="warm-cold" class="warm-cold cold">🌍 Waiting for GPS...</div>';
+		html += '<div id="warm-cold" class="warm-cold cold">' + icon('satellite') + ' Waiting for GPS...</div>';
 
 		// Clue
 		if (target && !allFound) {
 			html += '<div class="clue-box">' +
-				'<div class="clue-label">🧩 Clue</div>' +
+				'<div class="clue-label" style="display:inline-flex;align-items:center;gap:0.35rem;">' + icon('lightbulb') + 'Clue</div>' +
 				'<div class="clue-text" id="player-clue">' + escapeHtml(target.clue || 'Search the area...') + '</div>' +
 				'</div>';
 
-			html += '<button class="btn btn-outline btn-small" id="btn-show-hint" style="margin-bottom:0.75rem;">💡 Show Hint</button>';
+			html += '<button class="btn btn-outline btn-small" id="btn-show-hint" style="margin-bottom:0.75rem;">' + icon('lightbulb') + 'Show Hint</button>';
 			html += '<div id="player-hint" style="display:none;color:var(--gold);font-style:italic;margin-bottom:0.75rem;padding:0.5rem;background:var(--panel);border-radius:12px;">' + escapeHtml(target.hint || 'No hint available.') + '</div>';
 		}
 
 		if (allFound) {
 			html += '<div class="clue-box" style="border-left-color:var(--accent);">' +
-				'<div class="clue-label">🎉 All Treasures Found!</div>' +
+				'<div class="clue-label" style="display:inline-flex;align-items:center;gap:0.35rem;">' + icon('trophy') + 'All Coins Found</div>' +
 				'<div class="clue-text">Head back and claim your reward!</div>' +
 				'</div>';
-			html += '<button class="btn btn-primary btn-large" id="btn-claim-reward">🏆 Claim Final Reward</button>';
+			html += '<button class="btn btn-primary btn-large" id="btn-claim-reward">' + icon('trophy') + 'Claim Final Reward</button>';
 		}
 
 		// GPS accuracy
-		html += '<div style="text-align:center;font-size:0.75rem;color:var(--muted);margin-top:0.75rem;" id="player-gps-info">🛰️ Waiting for GPS fix...</div>';
+		html += '<div style="text-align:center;font-size:0.75rem;color:var(--muted);margin-top:0.75rem;" id="player-gps-info">' + icon('satellite') + ' Waiting for GPS fix...</div>';
 
 		// Action buttons
 		html += '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem;">' +
-			'<button class="btn btn-outline btn-small" id="btn-check-location">📍 Check My Location</button>' +
-			'<button class="btn btn-outline btn-small" id="btn-recenter-map">🗺️ Recenter Map</button>' +
-			'<button class="btn btn-outline btn-small" id="btn-pause-hunt">⏸ Pause Hunt</button>' +
-			'<button class="btn btn-danger btn-small" id="btn-end-hunt">⏹ End Hunt</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-check-location">' + icon('locate-fixed') + 'Check My Location</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-recenter-map">' + icon('map-pinned') + 'Recenter Map</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-pause-hunt">' + icon('pause') + 'Pause Hunt</button>' +
+			'<button class="btn btn-danger btn-small" id="btn-end-hunt">' + icon('square') + 'End Hunt</button>' +
 			'</div>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
+		renderLucideIcons();
+
+		var btnRaceHost = document.getElementById('btn-race-host');
+		if (btnRaceHost) {
+			btnRaceHost.addEventListener('click', function () {
+				var inputName = document.getElementById('race-name');
+				if (inputName && inputName.value.trim()) raceState.myName = inputName.value.trim();
+				hostRaceSession();
+			});
+		}
+
+		var btnRaceJoin = document.getElementById('btn-race-join');
+		if (btnRaceJoin) {
+			btnRaceJoin.addEventListener('click', function () {
+				var inputName = document.getElementById('race-name');
+				var inputCode = document.getElementById('race-code');
+				if (inputName && inputName.value.trim()) raceState.myName = inputName.value.trim();
+				joinRaceSession(inputCode ? inputCode.value.trim() : '');
+			});
+		}
+
+		var btnRaceCopy = document.getElementById('btn-race-copy');
+		if (btnRaceCopy) {
+			btnRaceCopy.addEventListener('click', function () {
+				if (!raceState.roomCode) return;
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					navigator.clipboard.writeText(raceState.roomCode).then(function () {
+						showModal('Race room code copied.', 'success', 'Race Code');
+					}).catch(function () {
+						showModal('Room code: ' + raceState.roomCode, 'info', 'Race Code');
+					});
+				} else {
+					showModal('Room code: ' + raceState.roomCode, 'info', 'Race Code');
+				}
+			});
+		}
+
+		var btnRaceDisconnect = document.getElementById('btn-race-disconnect');
+		if (btnRaceDisconnect) {
+			btnRaceDisconnect.addEventListener('click', function () {
+				teardownRaceSession();
+				renderPlayerView();
+				updatePlayerMap();
+			});
+		}
 
 		// Bind events
 		var btnShowHint = document.getElementById('btn-show-hint');
@@ -1881,7 +2259,8 @@
 			wcEl.addEventListener('click', function () {
 				if (playerState.currentPosition) return;
 				if (!navigator.geolocation) return;
-				wcEl.textContent = '🛰️ Requesting GPS...';
+				wcEl.innerHTML = icon('satellite') + ' Requesting GPS...';
+				renderLucideIcons();
 				navigator.geolocation.getCurrentPosition(
 					function (pos) {
 						playerState.currentPosition = {
@@ -1899,7 +2278,8 @@
 						startGPSWatch();
 					},
 					function () {
-						wcEl.textContent = '⚠️ GPS failed. Tap to retry.';
+						wcEl.innerHTML = icon('triangle-alert') + ' GPS failed. Tap to retry.';
+						renderLucideIcons();
 					},
 					{ enableHighAccuracy: true, timeout: 15000 }
 				);
@@ -1964,14 +2344,19 @@
 				updatePlayerUI(playerState.currentPosition);
 				updatePlayerMap();
 				checkUnlock();
+				syncRaceScore();
 			},
 			function (err) {
 				var msg = 'GPS error. ';
 				if (err.code === 1) msg += 'Permission denied. Please enable location access.';
 				else if (err.code === 2) msg += 'Position unavailable. Check your GPS signal.';
 				else if (err.code === 3) msg += 'Request timed out. Try again.';
-				document.getElementById('warm-cold').textContent = '⚠️ ' + msg;
-				document.getElementById('warm-cold').className = 'warm-cold cold';
+				var wcEl = document.getElementById('warm-cold');
+				if (wcEl) {
+					wcEl.innerHTML = icon('triangle-alert') + ' ' + msg;
+					wcEl.className = 'warm-cold cold';
+					renderLucideIcons();
+				}
 			},
 			{
 				enableHighAccuracy: true,
@@ -2007,7 +2392,8 @@
 		var gpsEl = document.getElementById('player-gps-info');
 		if (gpsEl) {
 			var acc = position.accuracy ? Math.round(position.accuracy) : '?';
-			gpsEl.textContent = '🛰️ Accuracy: ±' + acc + 'm · Last update: ' + new Date(position.timestamp).toLocaleTimeString();
+			gpsEl.innerHTML = icon('satellite') + ' Accuracy: ±' + acc + 'm · Last update: ' + new Date(position.timestamp).toLocaleTimeString();
+			renderLucideIcons();
 		}
 
 		// Update distance
@@ -2023,21 +2409,22 @@
 			if (wcEl) {
 				var radius = target.radiusMeters || hunt.defaultRadiusMeters || 25;
 				if (dist <= radius) {
-					wcEl.textContent = '🔥 You\'re right on top of it!';
+					wcEl.innerHTML = icon('flame') + ' You are right on top of it!';
 					wcEl.className = 'warm-cold very-close';
 				} else if (dist < 30) {
-					wcEl.textContent = '🔥 You\'re very close! (' + Math.round(dist) + 'm)';
+					wcEl.innerHTML = icon('flame') + ' You are very close! (' + Math.round(dist) + 'm)';
 					wcEl.className = 'warm-cold very-close';
 				} else if (dist < 100) {
-					wcEl.textContent = '🌡 Getting warmer... (' + Math.round(dist) + 'm)';
+					wcEl.innerHTML = icon('thermometer') + ' Getting warmer... (' + Math.round(dist) + 'm)';
 					wcEl.className = 'warm-cold warm';
 				} else if (dist < 500) {
-					wcEl.textContent = '🧊 Getting colder... (' + Math.round(dist) + 'm)';
+					wcEl.innerHTML = icon('snowflake') + ' Getting colder... (' + Math.round(dist) + 'm)';
 					wcEl.className = 'warm-cold cold';
 				} else {
-					wcEl.textContent = '❄️ Keep searching! (' + Math.round(dist) + 'm away)';
+					wcEl.innerHTML = icon('compass') + ' Keep searching! (' + Math.round(dist) + 'm away)';
 					wcEl.className = 'warm-cold cold';
 				}
+				renderLucideIcons();
 			}
 		}
 
@@ -2110,6 +2497,8 @@
 		foundIds.push(treasureId);
 		progress.foundTreasureIds = foundIds;
 		window.TreasureApp.progress.save(playerState.huntId, progress);
+		updateLocalRaceScore(progress);
+		syncRaceScore();
 
 		// Show treasure-found modal (Phase 08 will enhance)
 		showTreasureFoundModal(treasure, hunt);
@@ -2137,7 +2526,7 @@
 		}
 
 		if (typeof L === 'undefined') {
-			mapDiv.innerHTML = '<p style="padding:0.75rem;color:var(--danger);text-align:center;">⚠️ Map library failed to load. Check network and refresh.</p>';
+			mapDiv.innerHTML = '<p style="padding:0.75rem;color:var(--danger);text-align:center;">Map library failed to load. Check network and refresh.</p>';
 			return;
 		}
 
@@ -2221,8 +2610,8 @@
 
 			if (hunt.showExactMarkers) {
 				var icon = isFound
-					? L.divIcon({ className: 'treasure-marker-found', html: '✅', iconSize: [24, 24] })
-					: L.divIcon({ className: 'treasure-marker-unfound', html: t.icon || '📍', iconSize: [28, 28], iconAnchor: [14, 14] });
+					? L.divIcon({ className: 'treasure-marker-found', html: '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;background:#51e6a6;color:#072016;font-weight:700;border:2px solid #fff;">+</span>', iconSize: [24, 24] })
+					: L.divIcon({ className: 'treasure-marker-unfound', html: escapeHtml(t.icon || 'Coin'), iconSize: [28, 28], iconAnchor: [14, 14] });
 
 				var marker = L.marker([t.lat, t.lng], { icon: icon }).addTo(map);
 				if (!isFound) {
@@ -2242,7 +2631,7 @@
 					weight: 1,
 					dashArray: '5, 10'
 				}).addTo(map);
-				circle.bindPopup('🔍 Search zone');
+				circle.bindPopup('Search zone');
 				playerState.treasureCircles.push(circle);
 			}
 		}
@@ -2314,15 +2703,16 @@
 			foundCount = progress.foundTreasureIds.length;
 		}
 
-		var html = '<div style="font-size:4rem;animation:pulse 0.5s ease-out;">' + (treasure.icon || '🎉') + '</div>' +
+		var html = '<div style="font-size:4rem;animation:pulse 0.5s ease-out;display:flex;justify-content:center;">' + icon('gem') + '</div>' +
 			'<h1 style="color:var(--gold);font-size:2rem;margin:0.5rem 0;">Treasure Found!</h1>' +
 			'<h2 style="color:var(--text);font-size:1.3rem;margin-bottom:0.75rem;">' + escapeHtml(treasure.title) + '</h2>' +
 			(treasure.foundMessage ? '<p style="font-size:1.1rem;color:var(--accent);margin-bottom:0.5rem;">' + escapeHtml(treasure.foundMessage) + '</p>' : '') +
 			(treasure.rewardText ? '<p style="font-size:1rem;color:var(--muted);">' + escapeHtml(treasure.rewardText) + '</p>' : '') +
 			'<p style="color:var(--muted);margin-top:1rem;">' + foundCount + ' / ' + totalCount + ' treasures found</p>' +
-			'<button class="btn btn-primary btn-large" id="btn-continue-hunt" style="margin-top:1.5rem;">▶ Continue Hunting</button>';
+			'<button class="btn btn-primary btn-large" id="btn-continue-hunt" style="margin-top:1.5rem;">' + icon('play') + 'Continue Hunting</button>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
 
 		// Trigger effects
 		triggerTreasureEffects();
@@ -2458,18 +2848,19 @@
 		var container = document.getElementById('final-reward-content');
 		if (!container) return;
 
-		var html = '<div style="font-size:4rem;animation:bounceIn 0.6s ease-out;">🏆</div>' +
+		var html = '<div style="font-size:4rem;animation:bounceIn 0.6s ease-out;display:flex;justify-content:center;">' + icon('trophy') + '</div>' +
 			'<h1 style="color:var(--gold);font-size:2rem;margin:0.5rem 0;">Congratulations!</h1>' +
 			'<p style="color:var(--text);font-size:1.2rem;margin-bottom:0.5rem;">You found all the treasures in</p>' +
 			'<h2 style="color:var(--accent);font-size:1.4rem;margin-bottom:1rem;">' + escapeHtml(hunt.title) + '</h2>' +
 			(hunt.finalReward ? '<div style="background:var(--panel);border-radius:var(--radius);padding:1.5rem;margin:1rem 0;border:2px solid var(--gold);"><p style="font-size:1.3rem;color:var(--gold);">' + escapeHtml(hunt.finalReward) + '</p></div>' : '') +
 			'<div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1.5rem;">' +
-			'<button class="btn btn-primary btn-large" id="btn-play-again">🔄 Play Again</button>' +
-			'<button class="btn btn-outline btn-large" id="btn-build-another">🔧 Build Another Hunt</button>' +
-			'<button class="btn btn-outline" id="btn-export-results">📤 Export Results</button>' +
+			'<button class="btn btn-primary btn-large" id="btn-play-again">' + icon('rotate-ccw') + 'Play Again</button>' +
+			'<button class="btn btn-outline btn-large" id="btn-build-another">' + icon('hammer') + 'Build Another Hunt</button>' +
+			'<button class="btn btn-outline" id="btn-export-results">' + icon('file-down') + 'Export Results</button>' +
 			'</div>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
 
 		// Confetti on final reward
 		spawnConfetti();
@@ -2545,6 +2936,18 @@
 	}
 
 	/**
+	 * Share the active hunt using the native share sheet when available.
+	 */
+	function shareActiveHunt() {
+		var huntId = window.TreasureApp.activeHunt.get();
+		if (!huntId) {
+			showModal('No active hunt selected to share.', 'warning', 'Share Hunt');
+			return;
+		}
+		shareHuntById(huntId);
+	}
+
+	/**
 	 * Export a specific hunt by ID.
 	 * @param {string} huntId
 	 */
@@ -2560,22 +2963,88 @@
 			return;
 		}
 
+		var filename = getHuntExportFilename(hunt);
+
+		showConfirm('Exported hunt files may contain private coordinates. Only share them with people you trust. Continue?', function () {
+			downloadJSON(hunt, filename);
+		}, null, 'Export Warning', 'Export Hunt', 'Cancel');
+	}
+
+	/**
+	 * Share a specific hunt. Falls back to file download when share APIs are unavailable.
+	 * @param {string} huntId
+	 */
+	function shareHuntById(huntId) {
+		if (!huntId) {
+			showModal('No hunt selected to share.', 'warning', 'Share Hunt');
+			return;
+		}
+
+		var hunt = window.TreasureApp.hunts.get(huntId);
+		if (!hunt) {
+			showModal('Hunt not found.', 'error', 'Share Hunt');
+			return;
+		}
+
+		var filename = getHuntExportFilename(hunt);
+		var json = JSON.stringify(hunt, null, 2);
+		var file = null;
+
+		try {
+			if (typeof File !== 'undefined') {
+				file = new File([json], filename, { type: 'application/json' });
+			}
+		} catch (e) {
+			file = null;
+		}
+
+		showConfirm('This shares the hunt file directly. Continue?', function () {
+			var supportsFiles = false;
+			try {
+				supportsFiles = !!(navigator.share && file && navigator.canShare && navigator.canShare({ files: [file] }));
+			} catch (e) {
+				supportsFiles = false;
+			}
+
+			if (supportsFiles) {
+				navigator.share({
+					title: hunt.title || 'Treasure Trail Hunt',
+					text: 'Treasure Trail hunt file for import.',
+					files: [file]
+				}).then(function () {
+					showModal('Shared successfully.', 'success', 'Share Hunt');
+				}).catch(function (err) {
+					if (err && err.name === 'AbortError') return;
+					downloadJSON(hunt, filename);
+					showModal('Native share failed, so the hunt was downloaded instead.', 'warning', 'Share Fallback');
+				});
+				return;
+			}
+
+			downloadJSON(hunt, filename);
+			showModal('Native share is not available here, so the hunt was downloaded for manual sharing.', 'info', 'Share Fallback');
+		}, null, 'Share Hunt', 'Share', 'Cancel');
+	}
+
+	/**
+	 * Build a stable export filename for a hunt.
+	 * @param {Object} hunt
+	 * @returns {string}
+	 */
+	function getHuntExportFilename(hunt) {
 		var safeTitle = (hunt.title || hunt.id || 'hunt')
 			.toLowerCase()
 			.replace(/[^a-z0-9\-_]+/g, '-')
 			.replace(/-+/g, '-')
 			.replace(/^-|-$/g, '') || 'hunt';
-
-		showConfirm('⚠️ Exported hunt files may contain private coordinates. Only share them with people you trust. Continue?', function () {
-			downloadJSON(hunt, 'treasure-trail-' + safeTitle + '.json');
-		}, null, 'Export Warning', 'Export Hunt', 'Cancel');
+		return 'treasure-trail-' + safeTitle + '.json';
 	}
 
 	/**
 	 * Export all hunts as a downloadable JSON file.
 	 */
 	function exportAllHunts() {
-		showConfirm('⚠️ Exported hunt files may contain private coordinates. Only share them with people you trust. Continue?', function () {
+		showConfirm('Exported hunt files may contain private coordinates. Only share them with people you trust. Continue?', function () {
 			var hunts = window.TreasureApp.hunts.load();
 			if (hunts.length === 0) {
 				showModal('No hunts to export.', 'warning', 'Export');
@@ -2686,9 +3155,9 @@
 			imported++;
 		}
 
-		var msg = 'Import complete!\n\n✅ Imported: ' + imported + ' hunt(s)';
-		if (skipped > 0) msg += '\n⏭ Skipped: ' + skipped;
-		if (errors.length > 0) msg += '\n⚠️ Errors:\n' + errors.join('\n');
+		var msg = 'Import complete!\n\nImported: ' + imported + ' hunt(s)';
+		if (skipped > 0) msg += '\nSkipped: ' + skipped;
+		if (errors.length > 0) msg += '\nErrors:\n' + errors.join('\n');
 		showModal(msg, imported > 0 ? 'success' : 'warning', 'Import Complete');
 
 		// Refresh home view
@@ -2741,7 +3210,7 @@
 
 		// Privacy explanation
 		html += '<div class="card" style="margin-bottom:1.5rem;">' +
-			'<h3 style="color:var(--gold);margin-bottom:0.5rem;">🔒 Privacy & Storage</h3>' +
+			'<h3 style="color:var(--gold);margin-bottom:0.5rem;display:inline-flex;align-items:center;gap:0.35rem;">' + icon('shield-check') + 'Privacy & Storage</h3>' +
 			'<p style="font-size:0.9rem;color:var(--text);line-height:1.6;">' +
 			'Treasure Trail is <strong>local-only</strong> by default.</p>' +
 			'<p style="font-size:0.85rem;color:var(--muted);margin-top:0.5rem;line-height:1.6;">' +
@@ -2756,15 +3225,15 @@
 
 		// Storage status
 		html += '<div class="card" style="margin-bottom:1.5rem;">' +
-			'<h3 style="color:var(--gold);margin-bottom:0.5rem;">💾 Storage Status</h3>' +
+			'<h3 style="color:var(--gold);margin-bottom:0.5rem;display:inline-flex;align-items:center;gap:0.35rem;">' + icon('hard-drive') + 'Storage Status</h3>' +
 			'<p style="font-size:0.9rem;">Hunts saved: <strong>' + hunts.length + '</strong></p>' +
 			'<p style="font-size:0.9rem;">Active hunt: <strong>' + (activeHunt ? escapeHtml(activeHunt.title) : 'None') + '</strong></p>' +
-			'<p style="font-size:0.9rem;">Storage available: <strong>' + (window.TreasureApp.isStorageAvailable() ? '✅ Yes' : '❌ No (in-memory only)') + '</strong></p>' +
+			'<p style="font-size:0.9rem;">Storage available: <strong>' + (window.TreasureApp.isStorageAvailable() ? 'Yes' : 'No (in-memory only)') + '</strong></p>' +
 			'</div>';
 
 		// Settings toggles
 		html += '<div class="card" style="margin-bottom:1.5rem;">' +
-			'<h3 style="color:var(--gold);margin-bottom:0.75rem;">⚙️ Settings</h3>' +
+			'<h3 style="color:var(--gold);margin-bottom:0.75rem;display:inline-flex;align-items:center;gap:0.35rem;">' + icon('settings') + 'Settings</h3>' +
 
 			'<div class="toggle-group">' +
 			'<label><input type="checkbox" id="set-sound"' + (settings.soundEnabled ? ' checked' : '') + '> Enable Sound</label>' +
@@ -2800,20 +3269,21 @@
 			'<input type="text" id="set-builder-pin" value="' + escapeAttr(settings.builderPin || '') + '" maxlength="20" inputmode="numeric" pattern="[0-9]*">' +
 			'</div>' +
 
-			'<button class="btn btn-primary" id="btn-save-settings" style="margin-top:0.75rem;">💾 Save Settings</button>' +
+			'<button class="btn btn-primary" id="btn-save-settings" style="margin-top:0.75rem;">' + icon('save') + 'Save Settings</button>' +
 			'</div>';
 
 		// Danger zone
 		html += '<div class="card" style="border-color:var(--danger);">' +
-			'<h3 style="color:var(--danger);margin-bottom:0.5rem;">⚠️ Danger Zone</h3>' +
+			'<h3 style="color:var(--danger);margin-bottom:0.5rem;display:inline-flex;align-items:center;gap:0.35rem;">' + icon('triangle-alert') + 'Danger Zone</h3>' +
 			'<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">' +
-			'<button class="btn btn-outline btn-small" id="btn-export-all">📤 Export All Hunts</button>' +
-			'<button class="btn btn-danger btn-small" id="btn-clear-data">🗑 Clear All Local Data</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-export-all">' + icon('download') + 'Export All Hunts</button>' +
+			'<button class="btn btn-danger btn-small" id="btn-clear-data">' + icon('trash-2') + 'Clear All Local Data</button>' +
 			'</div>' +
-			'<button class="btn btn-link btn-small" id="btn-open-debug" style="margin-top:0.75rem;opacity:0.5;">🐛 Debug Panel</button>' +
+			'<button class="btn btn-link btn-small" id="btn-open-debug" style="margin-top:0.75rem;opacity:0.5;">' + icon('bug') + 'Debug Panel</button>' +
 			'</div>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
 
 		// Event: PIN toggle
 		document.getElementById('set-builder-pin-enabled').addEventListener('change', function () {
@@ -2841,7 +3311,7 @@
 
 		// Event: Clear data
 		document.getElementById('btn-clear-data').addEventListener('click', function () {
-			showConfirm('⚠️ This will permanently delete ALL hunts, progress, and settings from this device. This cannot be undone. Are you sure?', function () {
+			showConfirm('This will permanently delete ALL hunts, progress, and settings from this device. This cannot be undone. Are you sure?', function () {
 				showConfirm('FINAL WARNING: All local data will be erased. Continue?', function () {
 					window.TreasureApp.resetAll();
 					showModal('All local data cleared.', 'success');
@@ -2869,12 +3339,12 @@
 
 		var pos = playerState.currentPosition;
 
-		var html = '<h3>🐛 Developer Debug Panel</h3>' +
+		var html = '<h3 style="display:inline-flex;align-items:center;gap:0.35rem;">' + icon('bug') + 'Developer Debug Panel</h3>' +
 			'<p style="font-size:0.75rem;color:var(--danger);margin-bottom:1rem;">Developer testing only. Real gameplay uses phone GPS.</p>';
 
 		// GPS Info
 		html += '<div class="card">' +
-			'<h4>📍 GPS State</h4>' +
+			'<h4 style="display:inline-flex;align-items:center;gap:0.35rem;">' + icon('locate-fixed') + 'GPS State</h4>' +
 			'<pre style="font-size:0.8rem;color:var(--muted);white-space:pre-wrap;">' +
 			'Latitude: ' + (pos ? pos.lat.toFixed(6) : 'N/A') + '\n' +
 			'Longitude: ' + (pos ? pos.lng.toFixed(6) : 'N/A') + '\n' +
@@ -2886,7 +3356,7 @@
 		// Hunt Info
 		if (hunt) {
 			html += '<div class="card">' +
-				'<h4>🎯 Active Hunt: ' + escapeHtml(hunt.title) + '</h4>' +
+				'<h4 style="display:inline-flex;align-items:center;gap:0.35rem;">' + icon('crosshair') + 'Active Hunt: ' + escapeHtml(hunt.title) + '</h4>' +
 				'<pre style="font-size:0.8rem;color:var(--muted);white-space:pre-wrap;">' +
 				'Hunt ID: ' + hunt.id + '\n' +
 				'Mode: ' + hunt.mode + '\n' +
@@ -2902,8 +3372,8 @@
 					if (pos) {
 						dist = Math.round(window.TreasureApp.distanceMeters(pos.lat, pos.lng, t.lat, t.lng)) + 'm';
 					}
-					html += '<div style="font-size:0.8rem;padding:0.25rem 0;">' +
-						(found ? '✅' : '🔍') + ' ' + escapeHtml(t.title) +
+					html += '<div style="font-size:0.8rem;padding:0.25rem 0;display:flex;align-items:center;gap:0.35rem;">' +
+						(found ? icon('circle-check') : icon('search')) + ' ' + escapeHtml(t.title) +
 						' — ' + dist +
 						' (radius: ' + (t.radiusMeters || hunt.defaultRadiusMeters || 25) + 'm)' +
 						'</div>';
@@ -2911,12 +3381,12 @@
 			}
 
 			// Simulate buttons
-			html += '<p style="font-weight:600;margin-top:0.75rem;margin-bottom:0.5rem;">🔧 Simulate (for testing):</p>';
+			html += '<p style="font-weight:600;margin-top:0.75rem;margin-bottom:0.5rem;display:inline-flex;align-items:center;gap:0.35rem;">' + icon('flask-conical') + 'Simulate (for testing):</p>';
 			for (var j = 0; j < hunt.treasures.length; j++) {
 				var st = hunt.treasures[j];
 				if (progress && progress.foundTreasureIds && progress.foundTreasureIds.indexOf(st.id) !== -1) continue;
 				html += '<button class="btn btn-small btn-outline btn-simulate" data-tid="' + st.id + '" style="margin:0.25rem;">' +
-					'📍 Simulate near: ' + escapeHtml(st.title) +
+					icon('map-pin') + 'Simulate near: ' + escapeHtml(st.title) +
 					'</button> ';
 			}
 			html += '</div>';
@@ -2924,17 +3394,18 @@
 
 		// Storage keys
 		html += '<div class="card">' +
-			'<h4>🗄 Storage Keys</h4>' +
+			'<h4 style="display:inline-flex;align-items:center;gap:0.35rem;">' + icon('database') + 'Storage Keys</h4>' +
 			'<pre id="debug-storage-keys" style="font-size:0.75rem;color:var(--muted);white-space:pre-wrap;">Loading...</pre>' +
 			'</div>';
 
 		// Actions
 		html += '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem;">' +
-			'<button class="btn btn-outline btn-small" id="btn-dump-debug">📋 Dump Debug JSON</button>' +
-			'<button class="btn btn-danger btn-small" id="btn-debug-clear">🗑 Clear All Data</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-dump-debug">' + icon('file-text') + 'Dump Debug JSON</button>' +
+			'<button class="btn btn-danger btn-small" id="btn-debug-clear">' + icon('trash-2') + 'Clear All Data</button>' +
 			'</div>';
 
 		container.innerHTML = html;
+		renderLucideIcons();
 
 		// Storage keys
 		setTimeout(function () {
@@ -2957,11 +3428,11 @@
 
 		// Simulate buttons
 		bindElements('.btn-simulate', 'click', function (e) {
-			var tid = e.target.getAttribute('data-tid');
+			var tid = e.currentTarget.getAttribute('data-tid');
 			if (!hunt) return;
 			var st = findTreasureById(hunt, tid);
 			if (!st) return;
-			showConfirm('⚠️ Simulate being at treasure "' + st.title + '"? This will unlock it as if you were standing there.', function () {
+			showConfirm('Simulate being at treasure "' + st.title + '"? This will unlock it as if you were standing there.', function () {
 				playerState.currentPosition = {
 					lat: st.lat,
 					lng: st.lng,

@@ -20,20 +20,20 @@
 		<!-- ====== Home / Start View ====== -->
 		<section id="view-home" class="view active">
 			<header class="app-header">
-				<h1>🗺️ Treasure Trail</h1>
+				<h1><i data-lucide="map" class="tt-icon title-icon"></i>Treasure Trail</h1>
 				<p class="tagline">A personal GPS treasure hunt builder.</p>
 			</header>
 			<div class="home-content">
 				<div class="status-bar">
-					<div id="gps-status" class="status-item">🛰️ GPS: checking...</div>
-					<div class="status-item">💾 Local-only: hunts are saved on this device.</div>
+					<div id="gps-status" class="status-item"><i data-lucide="satellite" class="tt-icon"></i>GPS: checking...</div>
+					<div class="status-item"><i data-lucide="hard-drive" class="tt-icon"></i>Local-only: hunts are saved on this device.</div>
 				</div>
 				<div class="home-actions">
-					<button id="btn-start-hunt" class="btn btn-primary btn-large" disabled>▶ Start Hunt</button>
-					<button id="btn-build-hunt" class="btn btn-secondary btn-large">🔧 Build / Edit Hunt</button>
-					<button id="btn-load-sample" class="btn btn-outline">📦 Load Sample Hunt</button>
-					<button id="btn-import-hunt" class="btn btn-outline">📥 Import Hunt</button>
-					<button id="btn-privacy" class="btn btn-link">🔒 Privacy &amp; How It Works</button>
+					<button id="btn-start-hunt" class="btn btn-primary btn-large" disabled><i data-lucide="play" class="tt-icon"></i>Start Hunt</button>
+					<button id="btn-build-hunt" class="btn btn-secondary btn-large"><i data-lucide="hammer" class="tt-icon"></i>Build / Edit Hunt</button>
+					<button id="btn-load-sample" class="btn btn-outline"><i data-lucide="package" class="tt-icon"></i>Load Sample Hunt</button>
+					<button id="btn-import-hunt" class="btn btn-outline"><i data-lucide="file-up" class="tt-icon"></i>Import Hunt</button>
+					<button id="btn-privacy" class="btn btn-link"><i data-lucide="shield-check" class="tt-icon"></i>Privacy &amp; How It Works</button>
 				</div>
 			</div>
 		</section>
@@ -41,8 +41,8 @@
 		<!-- ====== Builder View ====== -->
 		<section id="view-builder" class="view">
 			<div class="view-header">
-				<button class="btn btn-back" data-view="home">← Home</button>
-				<h2>🔧 Hunt Builder</h2>
+				<button class="btn btn-back" data-view="home"><i data-lucide="arrow-left" class="tt-icon"></i>Home</button>
+				<h2><i data-lucide="hammer" class="tt-icon"></i>Hunt Builder</h2>
 			</div>
 			<div id="builder-map" class="map-container" style="display:none;"></div>
 			<div id="builder-content" class="view-body">
@@ -53,8 +53,8 @@
 		<!-- ====== Player Hunt View ====== -->
 		<section id="view-player" class="view">
 			<div class="view-header">
-				<button class="btn btn-back" data-view="home">← Home</button>
-				<h2 id="player-hunt-title">⚔️ Hunt</h2>
+				<button class="btn btn-back" data-view="home"><i data-lucide="arrow-left" class="tt-icon"></i>Home</button>
+				<h2 id="player-hunt-title"><i data-lucide="crosshair" class="tt-icon"></i>Hunt</h2>
 			</div>
 			<div id="player-map" class="map-container" style="height:250px;"></div>
 			<div id="player-content" class="view-body">
@@ -79,8 +79,8 @@
 		<!-- ====== Settings / Privacy View ====== -->
 		<section id="view-settings" class="view">
 			<div class="view-header">
-				<button class="btn btn-back" data-view="home">← Home</button>
-				<h2>🔒 Privacy &amp; Settings</h2>
+				<button class="btn btn-back" data-view="home"><i data-lucide="arrow-left" class="tt-icon"></i>Home</button>
+				<h2><i data-lucide="shield-check" class="tt-icon"></i>Privacy &amp; Settings</h2>
 			</div>
 			<div id="settings-content" class="view-body">
 				<p class="placeholder-text">Settings coming in next phase.</p>
@@ -90,8 +90,8 @@
 		<!-- ====== Debug Panel ====== -->
 		<section id="view-debug" class="view">
 			<div class="view-header">
-				<button class="btn btn-back" data-view="settings">← Settings</button>
-				<h2>🐛 Debug Panel</h2>
+				<button class="btn btn-back" data-view="settings"><i data-lucide="arrow-left" class="tt-icon"></i>Settings</button>
+				<h2><i data-lucide="bug" class="tt-icon"></i>Debug Panel</h2>
 			</div>
 			<div id="debug-content" class="view-body">
 				<p class="placeholder-text">Debug panel coming in next phase.</p>
@@ -111,6 +111,8 @@
 		</div>
 	</div>
 	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+	<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+	<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 	<script src="./app.js"></script>
 </body>
 </html>

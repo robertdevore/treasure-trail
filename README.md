@@ -8,6 +8,8 @@ Treasure Trail is a **local-only Progressive Web App** that lets anyone create, 
 
 Create private location-based hunts, find hidden treasures, and unlock rewards — perfect for park adventures, family geocaching, or location-based reward games.
 
+It also supports lightweight live two-player races so two people can run the same trail at once and compare who has collected more coins.
+
 ## Privacy Model
 
 **Your hunts stay on your device. Treasure Trail does not upload your locations or progress anywhere.**
@@ -64,7 +66,21 @@ Then open `http://localhost:8080` in your browser.
 
 - **Export**: From the builder or settings, export your hunt as a JSON file.
 - **Import**: From the home screen, import a previously exported hunt JSON file.
+- **Share Active**: In Builder, use **Share Active** for native share sheet file sharing when supported.
+- **Share Fallback**: If native sharing is unavailable, Treasure Trail automatically downloads the file for manual sharing.
 - **⚠️ Warning:** Exported hunt files may contain private coordinates. Only share them with people you trust.
+
+## Live Two-Player Race
+
+1. Both players import/open the same hunt file.
+2. Start the hunt and open the **Live Race** panel.
+3. One player taps **Host Race** and shares the room code.
+4. The other player enters the code and taps **Join Race**.
+5. Coin counts sync live so you can race to the top score.
+
+Notes:
+- Live race uses peer-to-peer browser connections (no app backend).
+- If players are on different trail files, the app warns about a trail mismatch.
 
 ## Known Limitations
 
@@ -89,5 +105,7 @@ Then open `http://localhost:8080` in your browser.
 
 - Vanilla HTML/CSS/JavaScript
 - [Leaflet.js](https://leafletjs.com/) for maps
+- [Lucide](https://lucide.dev/icons/) for SVG icons
+- [PeerJS](https://peerjs.com/) for lightweight live race connectivity
 - PWA: Service Worker + Web Manifest
 - No build step, no framework, no backend

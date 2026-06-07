@@ -34,6 +34,20 @@ body {
 	-webkit-tap-highlight-color: transparent;
 }
 
+.tt-icon {
+	width: 1em;
+	height: 1em;
+	stroke-width: 2.25;
+	flex-shrink: 0;
+}
+
+.title-icon {
+	width: 1.05em;
+	height: 1.05em;
+	margin-right: 0.3rem;
+	vertical-align: -0.12em;
+}
+
 #app {
 	max-width: 600px;
 	margin: 0 auto;
@@ -97,6 +111,9 @@ body {
 	font-size: 1.25rem;
 	color: var(--gold);
 	flex: 1;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
 }
 
 .view-body {
@@ -235,6 +252,13 @@ body {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
+}
+
+.btn .tt-icon,
+.status-item .tt-icon,
+.custom-modal-header .tt-icon {
+	width: 1.05em;
+	height: 1.05em;
 }
 
 .status-item:not(:last-child) {
