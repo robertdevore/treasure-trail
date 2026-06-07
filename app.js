@@ -156,6 +156,8 @@
 		units: 'meters',
 		builderPinEnabled: false,
 		builderPin: '',
+		playerDisplayName: 'Player',
+		playerPhotoDataUrl: '',
 		theme: 'adventure'
 	};
 
@@ -605,7 +607,9 @@
 			if (currentView === 'player' && viewName !== 'player') {
 				stopGPSWatch();
 				destroyPlayerMap();
-				teardownRaceSession();
+				if (viewName !== 'treasure-found') {
+					teardownRaceSession();
+				}
 			}
 			currentView = viewName;
 			// View-specific lifecycle
@@ -1697,9 +1701,13 @@
 		currentPosition: null,
 		playerMap: null,
 		playerMarker: null,
+		opponentMarker: null,
 		playerAccuracyCircle: null,
 		treasureMarkers: [],
 		treasureCircles: [],
+		autoFollow: true,
+		playerMarkerPhoto: '',
+		opponentMarkerPhoto: '',
 		audioUnlocked: false // track if user interacted to allow audio
 	};
 
@@ -1709,7 +1717,10 @@
 		roomCode: '',
 		role: '',
 		myName: 'Player',
+		myPhotoDataUrl: '',
 		opponentName: 'Rival',
+		opponentPhotoDataUrl: '',
+		opponentPosition: null,
 		connected: false,
 		status: 'Not connected',
 		trailToken: '',
@@ -1717,6 +1728,86 @@
 		myScore: 0,
 		opponentScore: 0
 	};
+
+	/**
+	 * Build a circular map avatar marker icon.
+	 * @param {string} photoDataUrl
+	 * @param {string} fallbackColor
+	 * @returns {Object}
+	 */
+	function buildMapAvatarIcon(photoDataUrl, fallbackColor) {
+		var html = '';
+		if (photoDataUrl) {
+			html = '<div style="width:32px;height:32px;border-radius:50%;overflow:hidden;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);background:#0b1a17;">' +
+				'<img src="' + escapeAttr(photoDataUrl) + '" alt="player" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+				'</div>';
+			return L.divIcon({ className: 'player-marker-avatar', html: html, iconSize: [32, 32], iconAnchor: [16, 16] });
+		}
+
+		html = '<div style="width:20px;height:20px;background:' + fallbackColor + ';border:3px solid #fff;border-radius:50%;box-shadow:0 0 10px rgba(0,0,0,0.35);"></div>';
+		return L.divIcon({ className: 'player-marker-avatar', html: html, iconSize: [24, 24], iconAnchor: [12, 12] });
+	}
+
+	/**
+	 * Read and resize a selected photo for avatar use.
+	 * @param {File} file
+	 * @param {Function} callback
+	 */
+	function readAvatarFile(file, callback) {
+		if (!file) {
+			callback('');
+			return;
+		}
+
+		var reader = new FileReader();
+		reader.onload = function (e) {
+			var rawDataUrl = e && e.target ? e.target.result : '';
+			if (!rawDataUrl) {
+				callback('');
+				return;
+			}
+
+			var img = new Image();
+			img.onload = function () {
+				try {
+					var size = 128;
+					var canvas = document.createElement('canvas');
+					canvas.width = size;
+					canvas.height = size;
+					var ctx = canvas.getContext('2d');
+					if (!ctx) {
+						callback(rawDataUrl);
+						return;
+					}
+
+					var sx = 0;
+					var sy = 0;
+					var sw = img.width;
+					var sh = img.height;
+					if (sw > sh) {
+						sx = (sw - sh) / 2;
+						sw = sh;
+					} else if (sh > sw) {
+						sy = (sh - sw) / 2;
+						sh = sw;
+					}
+
+					ctx.drawImage(img, sx, sy, sw, sh, 0, 0, size, size);
+					callback(canvas.toDataURL('image/jpeg', 0.86));
+				} catch (err) {
+					callback(rawDataUrl);
+				}
+			};
+			img.onerror = function () {
+				callback(rawDataUrl);
+			};
+			img.src = rawDataUrl;
+		};
+		reader.onerror = function () {
+			callback('');
+		};
+		reader.readAsDataURL(file);
+	}
 
 	/**
 	 * Build a lightweight token representing the active trail.
@@ -1754,8 +1845,39 @@
 		raceState.roomCode = '';
 		raceState.status = 'Not connected';
 		raceState.opponentName = 'Rival';
+		raceState.opponentPhotoDataUrl = '';
+		raceState.opponentPosition = null;
 		raceState.opponentScore = 0;
 		raceState.trailMismatch = false;
+	}
+
+	/**
+	 * Build current race presence payload.
+	 * @returns {Object}
+	 */
+	function getRacePresencePayload(includePhoto) {
+		var position = null;
+		if (playerState.currentPosition) {
+			position = {
+				lat: playerState.currentPosition.lat,
+				lng: playerState.currentPosition.lng,
+				accuracy: playerState.currentPosition.accuracy,
+				timestamp: playerState.currentPosition.timestamp
+			};
+		}
+
+		var payload = {
+			name: raceState.myName || 'Player',
+			score: raceState.myScore,
+			trailToken: raceState.trailToken,
+			position: position
+		};
+
+		if (includePhoto) {
+			payload.photoDataUrl = raceState.myPhotoDataUrl || '';
+		}
+
+		return payload;
 	}
 
 	/**
@@ -1774,9 +1896,14 @@
 	 * Broadcast local score to connected rival.
 	 */
 	function syncRaceScore() {
-		sendRaceEvent('score', {
-			score: raceState.myScore
-		});
+		sendRaceEvent('presence', getRacePresencePayload(false));
+	}
+
+	/**
+	 * Share profile details (including avatar) with connected rival.
+	 */
+	function syncRaceProfile() {
+		sendRaceEvent('presence', getRacePresencePayload(true));
 	}
 
 	/**
@@ -1789,7 +1916,14 @@
 			name: raceState.myName || 'Player',
 			trailToken: getTrailToken(hunt),
 			trailTitle: hunt ? (hunt.title || 'Hunt') : 'Hunt',
-			score: raceState.myScore
+			score: raceState.myScore,
+			photoDataUrl: raceState.myPhotoDataUrl || '',
+			position: playerState.currentPosition ? {
+				lat: playerState.currentPosition.lat,
+				lng: playerState.currentPosition.lng,
+				accuracy: playerState.currentPosition.accuracy,
+				timestamp: playerState.currentPosition.timestamp
+			} : null
 		};
 	}
 
@@ -1816,6 +1950,11 @@
 			raceState.opponentScore = score;
 			renderPlayerView();
 			updatePlayerMap();
+			return;
+		}
+
+		if (message.type === 'presence') {
+			updateRaceStateFromHello(message.payload || {});
 		}
 	}
 
@@ -1825,8 +1964,18 @@
 	 */
 	function updateRaceStateFromHello(payload) {
 		var hunt = window.TreasureApp.hunts.get(playerState.huntId);
+		var incomingPos = payload && payload.position ? payload.position : null;
 		raceState.opponentName = payload.name || 'Rival';
 		raceState.opponentScore = typeof payload.score === 'number' ? payload.score : raceState.opponentScore;
+		raceState.opponentPhotoDataUrl = payload.photoDataUrl || raceState.opponentPhotoDataUrl || '';
+		if (incomingPos && typeof incomingPos.lat === 'number' && typeof incomingPos.lng === 'number') {
+			raceState.opponentPosition = {
+				lat: incomingPos.lat,
+				lng: incomingPos.lng,
+				accuracy: incomingPos.accuracy,
+				timestamp: incomingPos.timestamp
+			};
+		}
 		raceState.trailToken = getTrailToken(hunt);
 		raceState.trailMismatch = !!(payload.trailToken && raceState.trailToken && payload.trailToken !== raceState.trailToken);
 		if (raceState.trailMismatch) {
@@ -1862,6 +2011,8 @@
 			raceState.connected = false;
 			raceState.status = 'Disconnected';
 			raceState.opponentName = 'Rival';
+			raceState.opponentPhotoDataUrl = '';
+			raceState.opponentPosition = null;
 			raceState.opponentScore = 0;
 			renderPlayerView();
 			updatePlayerMap();
@@ -1870,6 +2021,8 @@
 		conn.on('error', function () {
 			raceState.connected = false;
 			raceState.status = 'Connection error';
+			raceState.opponentPhotoDataUrl = '';
+			raceState.opponentPosition = null;
 			renderPlayerView();
 			updatePlayerMap();
 		});
@@ -1969,6 +2122,10 @@
 		window.TreasureApp.progress.save(playerState.huntId, progress);
 		updateLocalRaceScore(progress);
 		raceState.trailToken = getTrailToken(hunt);
+		var settings = window.TreasureApp.settings.load();
+		raceState.myName = settings.playerDisplayName || raceState.myName || 'Player';
+		raceState.myPhotoDataUrl = settings.playerPhotoDataUrl || raceState.myPhotoDataUrl || '';
+		playerState.autoFollow = true;
 
 		window.TreasureApp.showView('player');
 		renderPlayerView();
@@ -1992,20 +2149,20 @@
 						playerState.playerMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
 					}
 					checkUnlock();
-						syncRaceScore();
+					syncRaceScore();
 				},
 				function (err) {
 					var msg = '';
-						if (err.code === 1) msg = 'Location permission denied. Please enable in browser settings.';
-						else if (err.code === 2) msg = 'GPS unavailable. Check your signal and try again.';
-						else if (err.code === 3) msg = 'GPS request timed out. Try again.';
+					if (err.code === 1) msg = 'Location permission denied. Please enable in browser settings.';
+					else if (err.code === 2) msg = 'GPS unavailable. Check your signal and try again.';
+					else if (err.code === 3) msg = 'GPS request timed out. Try again.';
 					var wcEl = document.getElementById('warm-cold');
 					if (wcEl) {
-							wcEl.innerHTML = icon('triangle-alert') + ' ' + msg + ' Tap to retry.';
+						wcEl.innerHTML = icon('triangle-alert') + ' ' + msg + ' Tap to retry.';
 						wcEl.className = 'warm-cold cold';
 						wcEl.style.cursor = 'pointer';
 						wcEl.onclick = function () { startPlayerHunt(); };
-							renderLucideIcons();
+						renderLucideIcons();
 					}
 				},
 				{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -2025,6 +2182,9 @@
 		var progress = window.TreasureApp.progress.load(playerState.huntId);
 		var settings = window.TreasureApp.settings.load();
 		if (!container || !hunt) return;
+
+		raceState.myName = settings.playerDisplayName || raceState.myName || 'Player';
+		raceState.myPhotoDataUrl = settings.playerPhotoDataUrl || raceState.myPhotoDataUrl || '';
 
 		var foundCount = progress.foundTreasureIds ? progress.foundTreasureIds.length : 0;
 		var totalCount = hunt.treasures.length;
@@ -2075,6 +2235,17 @@
 		html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.6rem;">';
 		html += '<input id="race-name" type="text" maxlength="32" placeholder="Player name" value="' + escapeAttr(raceState.myName || 'Player') + '" style="flex:1;min-width:140px;padding:0.5rem;border:2px solid var(--panel-2);border-radius:10px;background:var(--panel);color:var(--text);">';
 		html += '<input id="race-code" type="text" maxlength="128" placeholder="Room code" style="flex:1;min-width:140px;padding:0.5rem;border:2px solid var(--panel-2);border-radius:10px;background:var(--panel);color:var(--text);" value="' + escapeAttr(raceState.roomCode || '') + '">';
+		html += '</div>';
+
+		html += '<div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.6rem;flex-wrap:wrap;">';
+		if (raceState.myPhotoDataUrl) {
+			html += '<img src="' + escapeAttr(raceState.myPhotoDataUrl) + '" alt="Your profile photo" style="width:34px;height:34px;border-radius:999px;object-fit:cover;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,0.25);">';
+		} else {
+			html += '<div style="width:34px;height:34px;border-radius:999px;background:#4285F4;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,0.25);"></div>';
+		}
+		html += '<button class="btn btn-outline btn-small" id="btn-race-photo">' + icon('camera') + 'Set Photo</button>';
+		html += '<button class="btn btn-outline btn-small" id="btn-race-photo-clear"' + (raceState.myPhotoDataUrl ? '' : ' disabled') + '>' + icon('trash-2') + 'Clear Photo</button>';
+		html += '<input id="race-photo-input" type="file" accept="image/*" style="display:none;">';
 		html += '</div>';
 
 		html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.6rem;">' +
@@ -2130,7 +2301,11 @@
 		if (btnRaceHost) {
 			btnRaceHost.addEventListener('click', function () {
 				var inputName = document.getElementById('race-name');
-				if (inputName && inputName.value.trim()) raceState.myName = inputName.value.trim();
+				if (inputName && inputName.value.trim()) {
+					raceState.myName = inputName.value.trim();
+					settings.playerDisplayName = raceState.myName;
+					window.TreasureApp.settings.save(settings);
+				}
 				hostRaceSession();
 			});
 		}
@@ -2140,8 +2315,62 @@
 			btnRaceJoin.addEventListener('click', function () {
 				var inputName = document.getElementById('race-name');
 				var inputCode = document.getElementById('race-code');
-				if (inputName && inputName.value.trim()) raceState.myName = inputName.value.trim();
+				if (inputName && inputName.value.trim()) {
+					raceState.myName = inputName.value.trim();
+					settings.playerDisplayName = raceState.myName;
+					window.TreasureApp.settings.save(settings);
+				}
 				joinRaceSession(inputCode ? inputCode.value.trim() : '');
+			});
+		}
+
+		var raceNameInput = document.getElementById('race-name');
+		if (raceNameInput) {
+			raceNameInput.addEventListener('change', function () {
+				var nextName = raceNameInput.value ? raceNameInput.value.trim() : '';
+				if (!nextName) return;
+				raceState.myName = nextName;
+				settings.playerDisplayName = nextName;
+				window.TreasureApp.settings.save(settings);
+				syncRaceScore();
+				updatePlayerMap();
+			});
+		}
+
+		var btnRacePhoto = document.getElementById('btn-race-photo');
+		var btnRacePhotoClear = document.getElementById('btn-race-photo-clear');
+		var racePhotoInput = document.getElementById('race-photo-input');
+		if (btnRacePhoto && racePhotoInput) {
+			btnRacePhoto.addEventListener('click', function () {
+				racePhotoInput.click();
+			});
+			racePhotoInput.addEventListener('change', function () {
+				var file = racePhotoInput.files && racePhotoInput.files.length ? racePhotoInput.files[0] : null;
+				if (!file) return;
+				readAvatarFile(file, function (dataUrl) {
+					if (!dataUrl) {
+						showModal('Could not read that photo. Try another image.', 'warning', 'Photo Error');
+						return;
+					}
+					raceState.myPhotoDataUrl = dataUrl;
+					settings.playerPhotoDataUrl = dataUrl;
+					window.TreasureApp.settings.save(settings);
+					renderPlayerView();
+					updatePlayerMap();
+					syncRaceProfile();
+				});
+				racePhotoInput.value = '';
+			});
+		}
+
+		if (btnRacePhotoClear) {
+			btnRacePhotoClear.addEventListener('click', function () {
+				raceState.myPhotoDataUrl = '';
+				settings.playerPhotoDataUrl = '';
+				window.TreasureApp.settings.save(settings);
+				renderPlayerView();
+				updatePlayerMap();
+				syncRaceProfile();
 			});
 		}
 
@@ -2217,9 +2446,10 @@
 		var btnRecenterMap = document.getElementById('btn-recenter-map');
 		if (btnRecenterMap) {
 			btnRecenterMap.addEventListener('click', function () {
-			if (playerState.playerMap && playerState.currentPosition) {
-				playerState.playerMap.setView([playerState.currentPosition.lat, playerState.currentPosition.lng], 17);
-			}
+				playerState.autoFollow = true;
+				if (playerState.playerMap && playerState.currentPosition) {
+					playerState.playerMap.setView([playerState.currentPosition.lat, playerState.currentPosition.lng], 17);
+				}
 			});
 		}
 
@@ -2557,6 +2787,14 @@
 			zoomControl: true
 		});
 
+		// If the user pans/zooms manually, pause follow until they tap Recenter.
+		playerState.playerMap.on('dragstart', function () {
+			playerState.autoFollow = false;
+		});
+		playerState.playerMap.on('zoomstart', function () {
+			playerState.autoFollow = false;
+		});
+
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			attribution: '&copy; OSM',
 			maxZoom: 19
@@ -2637,17 +2875,19 @@
 		// Update user location marker
 		if (playerState.currentPosition) {
 			var pos = playerState.currentPosition;
+			var localPhoto = raceState.myPhotoDataUrl || '';
+			var localIcon = buildMapAvatarIcon(localPhoto, '#4285F4');
 			if (playerState.playerMarker) {
 				playerState.playerMarker.setLatLng([pos.lat, pos.lng]);
+				if (playerState.playerMarkerPhoto !== localPhoto) {
+					playerState.playerMarker.setIcon(localIcon);
+					playerState.playerMarkerPhoto = localPhoto;
+				}
 			} else {
-				var userIcon = L.divIcon({
-					className: 'player-marker',
-					html: '<div style="width:16px;height:16px;background:#4285F4;border:3px solid white;border-radius:50%;box-shadow:0 0 8px rgba(66,133,244,0.6);"></div>',
-					iconSize: [22, 22],
-					iconAnchor: [11, 11]
-				});
-				playerState.playerMarker = L.marker([pos.lat, pos.lng], { icon: userIcon }).addTo(map);
+				playerState.playerMarker = L.marker([pos.lat, pos.lng], { icon: localIcon }).addTo(map);
+				playerState.playerMarkerPhoto = localPhoto;
 			}
+			playerState.playerMarker.bindTooltip(raceState.myName || 'You', { direction: 'top', offset: [0, -14] });
 
 			// Accuracy circle
 			if (playerState.playerAccuracyCircle) {
@@ -2662,6 +2902,36 @@
 					weight: 1
 				}).addTo(map);
 			}
+
+			if (playerState.autoFollow) {
+				var center = map.getCenter();
+				var centerDistance = window.TreasureApp.distanceMeters(center.lat, center.lng, pos.lat, pos.lng);
+				if (centerDistance > 10) {
+					map.panTo([pos.lat, pos.lng], { animate: true, duration: 0.35 });
+				}
+			}
+		}
+
+		// Rival marker and avatar if connected and sharing presence
+		if (raceState.connected && raceState.opponentPosition && !raceState.trailMismatch) {
+			var oppPos = raceState.opponentPosition;
+			var oppPhoto = raceState.opponentPhotoDataUrl || '';
+			var oppIcon = buildMapAvatarIcon(oppPhoto, '#FF7A00');
+			if (playerState.opponentMarker) {
+				playerState.opponentMarker.setLatLng([oppPos.lat, oppPos.lng]);
+				if (playerState.opponentMarkerPhoto !== oppPhoto) {
+					playerState.opponentMarker.setIcon(oppIcon);
+					playerState.opponentMarkerPhoto = oppPhoto;
+				}
+			} else {
+				playerState.opponentMarker = L.marker([oppPos.lat, oppPos.lng], { icon: oppIcon }).addTo(map);
+				playerState.opponentMarkerPhoto = oppPhoto;
+			}
+			playerState.opponentMarker.bindTooltip(raceState.opponentName || 'Rival', { direction: 'top', offset: [0, -14] });
+		} else if (playerState.opponentMarker) {
+			map.removeLayer(playerState.opponentMarker);
+			playerState.opponentMarker = null;
+			playerState.opponentMarkerPhoto = '';
 		}
 	}
 
@@ -2673,10 +2943,27 @@
 			playerState.playerMap.remove();
 			playerState.playerMap = null;
 			playerState.playerMarker = null;
+			playerState.opponentMarker = null;
 			playerState.playerAccuracyCircle = null;
 			playerState.treasureMarkers = [];
 			playerState.treasureCircles = [];
+			playerState.playerMarkerPhoto = '';
+			playerState.opponentMarkerPhoto = '';
 		}
+	}
+
+	/**
+	 * Return from temporary interstitial views to an active player map session.
+	 */
+	function resumePlayerHuntView() {
+		window.TreasureApp.showView('player');
+		renderPlayerView();
+		initPlayerMap();
+		if (playerState.currentPosition) {
+			updatePlayerUI(playerState.currentPosition);
+		}
+		startGPSWatch();
+		syncRaceScore();
 	}
 
 	/**
@@ -2721,9 +3008,7 @@
 			if (foundCount >= totalCount) {
 				showFinalReward();
 			} else {
-				window.TreasureApp.showView('player');
-				renderPlayerView();
-				updatePlayerMap();
+				resumePlayerHuntView();
 			}
 		});
 
@@ -2734,9 +3019,7 @@
 				if (foundCount >= totalCount) {
 					showFinalReward();
 				} else {
-					window.TreasureApp.showView('player');
-					renderPlayerView();
-					updatePlayerMap();
+					resumePlayerHuntView();
 				}
 			}
 		}, 5000);
