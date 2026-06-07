@@ -1762,12 +1762,17 @@
 		container.innerHTML = html;
 
 		// Bind events
-		document.getElementById('btn-show-hint').addEventListener('click', function () {
-			var hintEl = document.getElementById('player-hint');
-			if (hintEl) hintEl.style.display = hintEl.style.display === 'none' ? '' : 'none';
-		});
+		var btnShowHint = document.getElementById('btn-show-hint');
+		if (btnShowHint) {
+			btnShowHint.addEventListener('click', function () {
+				var hintEl = document.getElementById('player-hint');
+				if (hintEl) hintEl.style.display = hintEl.style.display === 'none' ? '' : 'none';
+			});
+		}
 
-		document.getElementById('btn-check-location').addEventListener('click', function () {
+		var btnCheckLocation = document.getElementById('btn-check-location');
+		if (btnCheckLocation) {
+			btnCheckLocation.addEventListener('click', function () {
 			if (playerState.currentPosition) {
 				updatePlayerUI(playerState.currentPosition);
 				showModal('Current accuracy: ' + Math.round(playerState.currentPosition.accuracy) + 'm', 'info', 'GPS Status');
@@ -1797,30 +1802,43 @@
 					);
 				}
 			}
-		});
+			});
+		}
 
-		document.getElementById('btn-recenter-map').addEventListener('click', function () {
+		var btnRecenterMap = document.getElementById('btn-recenter-map');
+		if (btnRecenterMap) {
+			btnRecenterMap.addEventListener('click', function () {
 			if (playerState.playerMap && playerState.currentPosition) {
 				playerState.playerMap.setView([playerState.currentPosition.lat, playerState.currentPosition.lng], 17);
 			}
-		});
+			});
+		}
 
-		document.getElementById('btn-pause-hunt').addEventListener('click', function () {
+		var btnPauseHunt = document.getElementById('btn-pause-hunt');
+		if (btnPauseHunt) {
+			btnPauseHunt.addEventListener('click', function () {
 			stopGPSWatch();
 			showModal('Hunt paused. Tap "Check My Location" to resume tracking.', 'info', 'Hunt Paused');
-		});
+			});
+		}
 
-		document.getElementById('btn-end-hunt').addEventListener('click', function () {
+		var btnEndHunt = document.getElementById('btn-end-hunt');
+		if (btnEndHunt) {
+			btnEndHunt.addEventListener('click', function () {
 			showConfirm('End this hunt? Your progress is saved.', function () {
 				stopGPSWatch();
 				destroyPlayerMap();
 				window.TreasureApp.showView('home');
 			}, null, 'End Hunt', 'End Hunt', 'Cancel');
-		});
+			});
+		}
 
-		document.getElementById('btn-claim-reward').addEventListener('click', function () {
-			showFinalReward();
-		});
+		var btnClaimReward = document.getElementById('btn-claim-reward');
+		if (btnClaimReward) {
+			btnClaimReward.addEventListener('click', function () {
+				showFinalReward();
+			});
+		}
 
 		// Make warm-cold indicator clickable to retry GPS
 		var wcEl = document.getElementById('warm-cold');
@@ -2075,7 +2093,22 @@
 	 */
 	function initPlayerMap() {
 		var mapDiv = document.getElementById('player-map');
-		if (!mapDiv || typeof L === 'undefined') return;
+		if (!mapDiv) return;
+
+		mapDiv.style.display = 'block';
+		if (!mapDiv.style.height) {
+			mapDiv.style.height = '250px';
+		}
+		if (mapDiv.offsetHeight < 120) {
+			mapDiv.style.height = '250px';
+		}
+
+		if (typeof L === 'undefined') {
+			mapDiv.innerHTML = '<p style="padding:0.75rem;color:var(--danger);text-align:center;">⚠️ Map library failed to load. Check network and refresh.</p>';
+			return;
+		}
+
+		mapDiv.innerHTML = '';
 
 		destroyPlayerMap();
 
@@ -2111,7 +2144,15 @@
 
 		setTimeout(function () {
 			if (playerState.playerMap) playerState.playerMap.invalidateSize();
+		}, 120);
+
+		setTimeout(function () {
+			if (playerState.playerMap) playerState.playerMap.invalidateSize();
 		}, 400);
+
+		setTimeout(function () {
+			if (playerState.playerMap) playerState.playerMap.invalidateSize();
+		}, 900);
 
 		updatePlayerMap();
 	}
