@@ -817,7 +817,12 @@
 	function renderHuntList(container) {
 		var hunts = window.TreasureApp.hunts.load();
 
-		var html = '<button class="btn btn-primary btn-large" id="btn-create-hunt">➕ Create New Hunt</button>';
+		var html = '<button class="btn btn-primary btn-large" id="btn-create-hunt">➕ Create New Hunt</button>' +
+			'<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem;">' +
+			'<button class="btn btn-outline btn-small" id="btn-builder-export-active">📤 Export Active</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-builder-export-all">🗂 Export All</button>' +
+			'<button class="btn btn-outline btn-small" id="btn-builder-import">📥 Import Hunt</button>' +
+			'</div>';
 
 		if (hunts.length === 0) {
 			html += '<p class="placeholder-text">No hunts yet. Create your first treasure hunt!</p>';
@@ -836,6 +841,7 @@
 					'<div class="card-actions">' +
 					(isActive ? '<span style="color:var(--accent);font-size:0.8rem;">Active</span> ' : '') +
 					'<button class="btn btn-small btn-outline btn-edit-hunt" data-id="' + h.id + '">✏️</button>' +
+					'<button class="btn btn-small btn-outline btn-export-hunt" data-id="' + h.id + '" title="Export this hunt">📤</button>' +
 					'<button class="btn btn-small btn-outline btn-activate-hunt" data-id="' + h.id + '" title="Set as active hunt">▶</button>' +
 					'<button class="btn btn-small btn-danger btn-delete-hunt" data-id="' + h.id + '">🗑</button>' +
 					'</div>' +
@@ -860,6 +866,27 @@
 			renderHuntForm(container);
 		});
 
+		var btnBuilderExportActive = document.getElementById('btn-builder-export-active');
+		if (btnBuilderExportActive) {
+			btnBuilderExportActive.addEventListener('click', function () {
+				exportActiveHunt();
+			});
+		}
+
+		var btnBuilderExportAll = document.getElementById('btn-builder-export-all');
+		if (btnBuilderExportAll) {
+			btnBuilderExportAll.addEventListener('click', function () {
+				exportAllHunts();
+			});
+		}
+
+		var btnBuilderImport = document.getElementById('btn-builder-import');
+		if (btnBuilderImport) {
+			btnBuilderImport.addEventListener('click', function () {
+				triggerImportHunt();
+			});
+		}
+
 		// Event: Edit Hunt
 		bindElements('.btn-edit-hunt', 'click', function (e) {
 			var huntId = e.target.getAttribute('data-id');
@@ -872,6 +899,12 @@
 			var huntId = e.target.getAttribute('data-id');
 			window.TreasureApp.activeHunt.set(huntId);
 			renderHuntList(container);
+		});
+
+		// Event: Export Hunt
+		bindElements('.btn-export-hunt', 'click', function (e) {
+			var huntId = e.target.getAttribute('data-id');
+			exportHuntById(huntId);
 		});
 
 		// Event: Delete Hunt
@@ -2508,15 +2541,34 @@
 			showModal('No active hunt to export.', 'warning', 'Export');
 			return;
 		}
+		exportHuntById(huntId);
+	}
+
+	/**
+	 * Export a specific hunt by ID.
+	 * @param {string} huntId
+	 */
+	function exportHuntById(huntId) {
+		if (!huntId) {
+			showModal('No hunt selected to export.', 'warning', 'Export');
+			return;
+		}
+
+		var hunt = window.TreasureApp.hunts.get(huntId);
+		if (!hunt) {
+			showModal('Hunt not found.', 'error', 'Export');
+			return;
+		}
+
+		var safeTitle = (hunt.title || hunt.id || 'hunt')
+			.toLowerCase()
+			.replace(/[^a-z0-9\-_]+/g, '-')
+			.replace(/-+/g, '-')
+			.replace(/^-|-$/g, '') || 'hunt';
 
 		showConfirm('⚠️ Exported hunt files may contain private coordinates. Only share them with people you trust. Continue?', function () {
-			var hunt = window.TreasureApp.hunts.get(huntId);
-			if (!hunt) {
-				showModal('Hunt not found.', 'error', 'Export');
-				return;
-			}
-			downloadJSON(hunt, hunt.id + '.json');
-		}, null, 'Export Warning', 'Export', 'Cancel');
+			downloadJSON(hunt, 'treasure-trail-' + safeTitle + '.json');
+		}, null, 'Export Warning', 'Export Hunt', 'Cancel');
 	}
 
 	/**
@@ -2641,6 +2693,14 @@
 
 		// Refresh home view
 		refreshHomeView();
+
+		// Refresh builder list if currently visible
+		if (window.TreasureApp.getCurrentView() === 'builder' && !builderState.editingHuntId && !builderState.editingTreasureId) {
+			var builderContainer = document.getElementById('builder-content');
+			if (builderContainer) {
+				renderHuntList(builderContainer);
+			}
+		}
 	}
 
 	/**
