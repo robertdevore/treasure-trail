@@ -892,7 +892,6 @@
 
 		container.innerHTML = html;
 		renderLucideIcons();
-		renderLucideIcons();
 
 		// Event: Create New Hunt
 		document.getElementById('btn-create-hunt').addEventListener('click', function () {
@@ -2125,7 +2124,6 @@
 			'</div>';
 
 		container.innerHTML = html;
-		renderLucideIcons();
 		renderLucideIcons();
 
 		var btnRaceHost = document.getElementById('btn-race-host');
